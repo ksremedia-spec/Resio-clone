@@ -158,6 +158,76 @@ export function buildRoutes(s: Services, config: { NODE_ENV: string }): Route[] 
   add('POST', '/v1/threads/:id/read', async (r) => { await s.messages.markRead(requireCtx(r), r.params.id!); return ok; });
   add('DELETE', '/v1/threads/:id/messages/:messageId', async (r) => { await s.messages.deleteMessage(requireCtx(r), r.params.id!, r.params.messageId!); return ok; });
 
+  // ---- cost codes, catalog, vendors ----
+  add('GET', '/v1/cost-codes', async (r) => s.catalog.listCostCodes(requireCtx(r), r.query.includeArchived === 'true'));
+  add('POST', '/v1/cost-codes', async (r) => s.catalog.createCostCode(requireCtx(r), b(c.createCostCodeBody, r)), 201);
+  add('PATCH', '/v1/cost-codes/:id', async (r) => s.catalog.updateCostCode(requireCtx(r), r.params.id!, b(c.updateCostCodeBody, r)));
+  add('POST', '/v1/cost-codes/:id/archive', async (r) => s.catalog.archiveCostCode(requireCtx(r), r.params.id!, r.body?.archived ?? true));
+  add('GET', '/v1/catalog', async (r) => s.catalog.listCatalog(requireCtx(r), q(c.listCatalogQuery, r)));
+  add('POST', '/v1/catalog', async (r) => s.catalog.createCatalogItem(requireCtx(r), b(c.createCatalogItemBody, r)), 201);
+  add('PATCH', '/v1/catalog/:id', async (r) => s.catalog.updateCatalogItem(requireCtx(r), r.params.id!, b(c.updateCatalogItemBody, r)));
+  add('POST', '/v1/catalog/:id/archive', async (r) => s.catalog.archiveCatalogItem(requireCtx(r), r.params.id!, r.body?.archived ?? true));
+  add('GET', '/v1/vendors', async (r) => s.catalog.listVendors(requireCtx(r), q(c.listVendorsQuery, r)));
+  add('POST', '/v1/vendors', async (r) => s.catalog.createVendor(requireCtx(r), b(c.createVendorBody, r)), 201);
+  add('GET', '/v1/vendors/:id', async (r) => s.catalog.getVendor(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/vendors/:id', async (r) => s.catalog.updateVendor(requireCtx(r), r.params.id!, b(c.updateVendorBody, r)));
+  add('POST', '/v1/vendors/:id/archive', async (r) => s.catalog.archiveVendor(requireCtx(r), r.params.id!, r.body?.archived ?? true));
+
+  // ---- estimates ----
+  add('GET', '/v1/projects/:id/estimate', async (r) => s.estimates.getForProject(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/projects/:id/estimate', async (r) => s.estimates.update(requireCtx(r), r.params.id!, b(c.updateEstimateBody, r)));
+  add('POST', '/v1/projects/:id/estimate/sections', async (r) => s.estimates.createSection(requireCtx(r), r.params.id!, b(c.createSectionBody, r)), 201);
+  add('PATCH', '/v1/projects/:id/estimate/sections/:sectionId', async (r) => s.estimates.updateSection(requireCtx(r), r.params.id!, r.params.sectionId!, b(c.updateSectionBody, r)));
+  add('DELETE', '/v1/projects/:id/estimate/sections/:sectionId', async (r) => s.estimates.deleteSection(requireCtx(r), r.params.id!, r.params.sectionId!));
+  add('POST', '/v1/projects/:id/estimate/lines', async (r) => s.estimates.createLine(requireCtx(r), r.params.id!, b(c.createLineBody, r)), 201);
+  add('PATCH', '/v1/projects/:id/estimate/lines', async (r) => s.estimates.updateLines(requireCtx(r), r.params.id!, b(c.bulkLinesBody, r).lines as any));
+  add('PATCH', '/v1/projects/:id/estimate/lines/:lineId', async (r) => s.estimates.updateLines(requireCtx(r), r.params.id!, [{ id: r.params.lineId!, ...b(c.updateLineBody, r) }]));
+  add('DELETE', '/v1/projects/:id/estimate/lines/:lineId', async (r) => s.estimates.deleteLine(requireCtx(r), r.params.id!, r.params.lineId!));
+  add('POST', '/v1/projects/:id/estimate/lock', async (r) => s.estimates.lock(requireCtx(r), r.params.id!, { applyContractValue: r.body?.applyContractValue ?? true }));
+  add('POST', '/v1/projects/:id/estimate/unlock', async (r) => s.estimates.unlock(requireCtx(r), r.params.id!));
+
+  // ---- budget ----
+  add('GET', '/v1/budget/overview', async (r) => s.budget.overview(requireCtx(r)));
+  add('GET', '/v1/projects/:id/budget', async (r) => s.budget.get(requireCtx(r), r.params.id!));
+  add('POST', '/v1/projects/:id/budget/lines', async (r) => s.budget.createLine(requireCtx(r), r.params.id!, b(c.createBudgetLineBody, r)), 201);
+  add('PATCH', '/v1/projects/:id/budget/lines/:lineId', async (r) => s.budget.updateLine(requireCtx(r), r.params.id!, r.params.lineId!, b(c.updateBudgetLineBody, r)));
+  add('GET', '/v1/projects/:id/budget/lines/:lineId', async (r) => s.budget.lineDetail(requireCtx(r), r.params.id!, r.params.lineId!));
+
+  // ---- purchase orders & bills ----
+  add('GET', '/v1/purchase-orders', async (r) => s.procurement.listPurchaseOrders(requireCtx(r), q(c.listPurchaseOrdersQuery, r)));
+  add('GET', '/v1/projects/:id/purchase-orders', async (r) => s.procurement.listPurchaseOrders(requireCtx(r), { ...q(c.listPurchaseOrdersQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
+  add('POST', '/v1/projects/:id/purchase-orders', async (r) => s.procurement.createPurchaseOrder(requireCtx(r), r.params.id!, b(c.createPurchaseOrderBody, r)), 201);
+  add('GET', '/v1/purchase-orders/:id', async (r) => s.procurement.getPurchaseOrder(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/purchase-orders/:id', async (r) => s.procurement.updatePurchaseOrder(requireCtx(r), r.params.id!, b(c.updatePurchaseOrderBody, r)));
+  add('POST', '/v1/purchase-orders/:id/transition', async (r) => s.procurement.transitionPurchaseOrder(requireCtx(r), r.params.id!, b(c.poTransitionBody, r).action));
+  add('GET', '/v1/bills', async (r) => s.procurement.listBills(requireCtx(r), q(c.listBillsQuery, r)));
+  add('GET', '/v1/projects/:id/bills', async (r) => s.procurement.listBills(requireCtx(r), { ...q(c.listBillsQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
+  add('POST', '/v1/bills', async (r) => s.procurement.createBill(requireCtx(r), b(c.createBillBody, r)), 201);
+  add('GET', '/v1/bills/:id', async (r) => s.procurement.getBill(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/bills/:id', async (r) => s.procurement.updateBill(requireCtx(r), r.params.id!, b(c.updateBillBody, r)));
+  add('POST', '/v1/bills/:id/transition', async (r) => s.procurement.transitionBill(requireCtx(r), r.params.id!, b(c.billTransitionBody, r).action));
+  add('POST', '/v1/bills/:id/payments', async (r) => s.procurement.recordBillPayment(requireCtx(r), r.params.id!, b(c.recordBillPaymentBody, r)), 201);
+
+  // ---- change orders ----
+  add('GET', '/v1/change-orders', async (r) => s.changeOrders.list(requireCtx(r), q(c.listChangeOrdersQuery, r)));
+  add('GET', '/v1/projects/:id/change-orders', async (r) => s.changeOrders.list(requireCtx(r), { ...q(c.listChangeOrdersQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
+  add('POST', '/v1/projects/:id/change-orders', async (r) => s.changeOrders.create(requireCtx(r), r.params.id!, b(c.createChangeOrderBody, r)), 201);
+  add('GET', '/v1/change-orders/:id', async (r) => s.changeOrders.get(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/change-orders/:id', async (r) => s.changeOrders.update(requireCtx(r), r.params.id!, b(c.updateChangeOrderBody, r)));
+  add('POST', '/v1/change-orders/:id/send', async (r) => s.changeOrders.send(requireCtx(r), r.params.id!, r.body ? b(c.sendChangeOrderBody, r) : {}));
+  add('POST', '/v1/change-orders/:id/decide', async (r) => s.changeOrders.decide(requireCtx(r), r.params.id!, b(c.decideChangeOrderBody, r)));
+  add('POST', '/v1/change-orders/:id/void', async (r) => s.changeOrders.void(requireCtx(r), r.params.id!));
+
+  // ---- invoices & payments ----
+  add('GET', '/v1/invoices', async (r) => s.invoices.list(requireCtx(r), q(c.listInvoicesQuery, r)));
+  add('GET', '/v1/projects/:id/invoices', async (r) => s.invoices.list(requireCtx(r), { ...q(c.listInvoicesQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
+  add('POST', '/v1/projects/:id/invoices', async (r) => s.invoices.create(requireCtx(r), r.params.id!, b(c.createInvoiceBody, r)), 201);
+  add('GET', '/v1/invoices/:id', async (r) => s.invoices.get(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/invoices/:id', async (r) => s.invoices.update(requireCtx(r), r.params.id!, b(c.updateInvoiceBody, r)));
+  add('POST', '/v1/invoices/:id/transition', async (r) => s.invoices.transition(requireCtx(r), r.params.id!, b(c.invoiceTransitionBody, r).action));
+  add('POST', '/v1/invoices/:id/payments', async (r) => s.invoices.recordPayment(requireCtx(r), r.params.id!, b(c.recordPaymentBody, r)), 201);
+  add('DELETE', '/v1/invoices/:id/payments/:paymentId', async (r) => s.invoices.voidPayment(requireCtx(r), r.params.id!, r.params.paymentId!));
+
   // ---- sync ----
   add('GET', '/v1/sync/pull', async (r) => s.sync.pull(requireCtx(r), q(c.syncPullQuery, r)));
   add('POST', '/v1/sync/push', async (r) => ({ results: await s.sync.push(requireCtx(r), b(c.syncPushBody, r).mutations) }));

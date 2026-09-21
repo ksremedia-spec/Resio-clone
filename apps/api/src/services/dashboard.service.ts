@@ -72,7 +72,7 @@ export class DashboardService {
     if (ctx.has('budget.read')) {
       const lines = await db.select({
         l: budgetLines, projectName: projects.name, code: costCodes.code,
-        approved: sql<number>`coalesce((select sum(col.sell_cents) from change_order_lines col join change_orders co on co.id = col.change_order_id where col.budget_line_id = ${budgetLines.id} and co.status = 'approved'), 0)::bigint`,
+        approved: sql<number>`coalesce((select sum(col.cost_cents) from change_order_lines col join change_orders co on co.id = col.change_order_id where col.budget_line_id = ${budgetLines.id} and co.status = 'approved'), 0)::bigint`,
         committed: sql<number>`coalesce((select sum(pol.amount_cents - pol.billed_cents) from purchase_order_lines pol join purchase_orders po on po.id = pol.purchase_order_id where pol.budget_line_id = ${budgetLines.id} and po.status in ('approved','committed','matched')), 0)::bigint`,
         actual: sql<number>`coalesce((select sum(bl.amount_cents) from bill_lines bl join bills b on b.id = bl.bill_id where bl.budget_line_id = ${budgetLines.id} and b.status in ('approved','scheduled','paid')), 0)::bigint`,
       }).from(budgetLines).innerJoin(projects, eq(projects.id, budgetLines.projectId)).leftJoin(costCodes, eq(costCodes.id, budgetLines.costCodeId))

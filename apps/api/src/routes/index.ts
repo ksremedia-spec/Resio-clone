@@ -11,6 +11,7 @@ import { scheduleRoutes } from './schedule.routes.js';
 import { dailyLogRoutes } from './dailyLog.routes.js';
 import { messageRoutes } from './message.routes.js';
 import { syncRoutes } from './sync.routes.js';
+import { financialRoutes } from './financial.routes.js';
 
 export async function registerRoutes(app: AppInstance, services: Services, config: Config) {
   await app.register(async (v1) => {
@@ -24,5 +25,6 @@ export async function registerRoutes(app: AppInstance, services: Services, confi
     await dailyLogRoutes(v1 as AppInstance, services);
     await messageRoutes(v1 as AppInstance, services);
     await syncRoutes(v1 as AppInstance, services);
+    await financialRoutes(v1 as AppInstance, services);
   }, { prefix: '/v1' });
 }

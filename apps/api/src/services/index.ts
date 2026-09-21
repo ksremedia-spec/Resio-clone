@@ -12,6 +12,12 @@ import { SyncService } from './sync.service.js';
 import { ScheduleService } from './schedule.service.js';
 import { DailyLogService } from './dailyLog.service.js';
 import { MessageService } from './message.service.js';
+import { CatalogService } from './catalog.service.js';
+import { EstimateService } from './estimate.service.js';
+import { BudgetService } from './budget.service.js';
+import { ProcurementService } from './procurement.service.js';
+import { ChangeOrderService } from './changeOrder.service.js';
+import { InvoiceService } from './invoice.service.js';
 import { registerSyncHandlers } from './sync.handlers.js';
 
 export function createServices(deps: Deps) {
@@ -28,7 +34,13 @@ export function createServices(deps: Deps) {
   const schedule = new ScheduleService(deps, activity, notifications, documents);
   const dailyLogs = new DailyLogService(deps, activity, notifications, documents);
   const messages = new MessageService(deps, activity, notifications, documents);
-  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages };
+  const catalog = new CatalogService(deps, activity);
+  const estimates = new EstimateService(deps, activity, notifications);
+  const budget = new BudgetService(deps, activity, projects);
+  const procurement = new ProcurementService(deps, activity, notifications, documents);
+  const changeOrders = new ChangeOrderService(deps, activity, notifications, documents);
+  const invoices = new InvoiceService(deps, activity, notifications, documents);
+  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices };
   registerSyncHandlers(services);
   return services;
 }
