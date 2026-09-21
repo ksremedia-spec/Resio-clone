@@ -13,6 +13,7 @@
     "dev:api": "pnpm --filter @buildline/api dev",
     "dev:ipad": "pnpm --filter @buildline/ipad dev",
     "db:migrate": "pnpm --filter @buildline/api db:migrate",
-    "db:seed": "pnpm --filter @buildline/api db:seed"
+    "db:seed": "pnpm --filter @buildline/api db:seed",
+    "demo": "pnpm --filter @buildline/ipad build && pnpm --filter @buildline/api demo"
   }
 }

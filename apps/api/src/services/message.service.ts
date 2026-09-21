@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, or, sql, ilike } from 'drizzle-orm';
 import type { contracts } from '@buildline/core';
 import type { Deps } from './deps.js';
+import { rowsOf } from '../db/client.js';
 import type { DbOrTx } from '../db/client.js';
 import { contacts, memberships, messageThreads, messages, projects, threadParticipants, users, vendors } from '../db/schema/index.js';
 import { AppError } from '../lib/errors.js';
@@ -56,7 +57,7 @@ export class MessageService {
       const userIds = new Set<string>([ctx.userId, ...(input.participantUserIds ?? [])]);
       if (input.kind === 'project' && input.projectId && !(input.participantUserIds?.length)) {
         const members = await tx.execute(sql`select user_id from project_members where project_id = ${input.projectId} and user_id is not null`);
-        for (const m of members as unknown as Array<{ user_id: string }>) userIds.add(m.user_id);
+        for (const m of rowsOf<{ user_id: string }>(members)) userIds.add(m.user_id);
       }
       const validUsers = await tx.select({ userId: memberships.userId }).from(memberships).where(and(eq(memberships.organizationId, ctx.organizationId), inArray(memberships.userId, [...userIds]), eq(memberships.status, 'active')));
       const values: Array<typeof threadParticipants.$inferInsert> = validUsers.map((u) => ({ organizationId: ctx.organizationId, threadId: thread!.id, userId: u.userId, createdBy: ctx.userId, updatedBy: ctx.userId, lastReadAt: u.userId === ctx.userId ? sql`now()` as any : null }));

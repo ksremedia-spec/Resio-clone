@@ -4,6 +4,7 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().default(4000),
   HOST: z.string().default('0.0.0.0'),
+  /** postgres://… for a server, or pglite://./data/buildline for the zero-install embedded database. */
   DATABASE_URL: z.string().default('postgres://postgres@localhost:5432/buildline'),
   /** Public URL of the API (used in signed file URLs). */
   API_URL: z.string().default('http://localhost:4000'),
@@ -25,6 +26,8 @@ const schema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().default(300),
   MAX_UPLOAD_MB: z.coerce.number().int().default(200),
   LOG_LEVEL: z.string().default('info'),
+  /** When set, the API also serves the built iPad/web client from this folder (single-process demo/self-host). */
+  SERVE_CLIENT_DIR: z.string().optional(),
   CORS_ORIGINS: z.string().default('http://localhost:5173,capacitor://localhost,ionic://localhost,http://localhost'),
 });
 

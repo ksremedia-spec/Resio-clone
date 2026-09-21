@@ -1,13 +1,19 @@
 import postgres from 'postgres';
+import { rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { runMigrations } from './migrate.js';
+import { isPglite, pgliteDir } from './client.js';
 
 export async function resetDatabase(databaseUrl: string) {
-  const sql = postgres(databaseUrl, { max: 1, onnotice: () => {} });
-  try {
-    await sql.unsafe('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
-  } finally {
-    await sql.end();
+  if (isPglite(databaseUrl)) {
+    rmSync(pgliteDir(databaseUrl), { recursive: true, force: true });
+  } else {
+    const sql = postgres(databaseUrl, { max: 1, onnotice: () => {} });
+    try {
+      await sql.unsafe('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
+    } finally {
+      await sql.end();
+    }
   }
   await runMigrations(databaseUrl, () => {});
 }

@@ -7,6 +7,9 @@ import swaggerUi from '@fastify/swagger-ui';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { Config } from './config.js';
 import { createDb } from './db/client.js';
+import fastifyStatic from '@fastify/static';
+import { existsSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { createProviders, type Providers } from './providers/index.js';
 import { createServices, type Services } from './services/index.js';
 import { authPlugin } from './plugins/auth.js';
@@ -27,7 +30,7 @@ export async function buildApp(config: Config, overrides: { providers?: Partial<
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);
 
-  const { db, client } = createDb(config.DATABASE_URL);
+  const { db, close: closeDb } = await createDb(config.DATABASE_URL);
   const providers = createProviders(config, overrides.providers);
   const services = createServices({ db, config, providers, log: fastify.log });
 
@@ -39,16 +42,24 @@ export async function buildApp(config: Config, overrides: { providers?: Partial<
     transform: jsonSchemaTransform,
   });
   await fastify.register(swaggerUi, { routePrefix: '/docs' });
-  await fastify.register(errorPlugin);
+  // Optional: serve the built client from the same process (demo / single-box deployments).
+  let clientRoot: string | null = null;
+  if (config.SERVE_CLIENT_DIR) {
+    clientRoot = resolve(config.SERVE_CLIENT_DIR);
+    if (!existsSync(join(clientRoot, 'index.html'))) throw new Error(`SERVE_CLIENT_DIR ${clientRoot} does not contain a built client (run pnpm --filter @buildline/ipad build)`);
+    await fastify.register(fastifyStatic, { root: clientRoot, prefix: '/', wildcard: false, decorateReply: true });
+  }
+  await fastify.register(errorPlugin, { spaFallback: !!clientRoot });
   await fastify.register(authPlugin, { services });
 
   fastify.get('/health', { schema: { hide: true } }, async () => ({ ok: true, time: new Date().toISOString() }));
   await registerRoutes(fastify as unknown as AppInstance, services, config);
 
+
   return {
     fastify,
     services,
     providers,
-    async close() { await fastify.close(); await client.end(); },
+    async close() { await fastify.close(); await closeDb(); },
   };
 }

@@ -3,7 +3,7 @@ import { ZodError } from 'zod';
 import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from 'fastify-type-provider-zod';
 import { AppError } from '../lib/errors.js';
 
-export const errorPlugin = fp(async (app) => {
+export const errorPlugin = fp(async (app, opts: { spaFallback?: boolean }) => {
   app.setErrorHandler((err: any, req, reply) => {
     if (err instanceof AppError) {
       return reply.status(err.status).send({ error: { code: err.code, message: err.message, details: err.details } });
@@ -24,5 +24,9 @@ export const errorPlugin = fp(async (app) => {
     req.log.error({ err }, 'unhandled error');
     return reply.status(500).send({ error: { code: 'internal', message: 'Something went wrong on our side. Your data has not been lost; please try again.' } });
   });
-  app.setNotFoundHandler((req, reply) => reply.status(404).send({ error: { code: 'not_found', message: `Route ${req.method} ${req.url} does not exist.` } }));
+  app.setNotFoundHandler((req, reply) => {
+    // When the built client is served from this process, unknown GET paths are app routes (deep links, refreshes).
+    if (opts.spaFallback && req.method === 'GET' && !req.url.startsWith('/v1') && !req.url.startsWith('/docs')) return (reply as any).sendFile('index.html');
+    return reply.status(404).send({ error: { code: 'not_found', message: `Route ${req.method} ${req.url} does not exist.` } });
+  });
 });

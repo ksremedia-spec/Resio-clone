@@ -2,22 +2,48 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
+import { mkdirSync } from 'node:fs';
+import { isPglite, pgliteDir } from './client.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = join(here, '..', '..', 'drizzle');
 
+function migrationFiles() {
+  return readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
+}
+function readMigration(file: string) {
+  return readFileSync(join(MIGRATIONS_DIR, file), 'utf8').replace(/--> statement-breakpoint/g, '');
+}
+
 export async function runMigrations(databaseUrl: string, log: (msg: string) => void = console.log) {
+  if (isPglite(databaseUrl)) {
+    const { PGlite } = await import('@electric-sql/pglite');
+    mkdirSync(pgliteDir(databaseUrl), { recursive: true });
+    const client = new PGlite(pgliteDir(databaseUrl));
+    try {
+      await client.waitReady;
+      await client.exec('CREATE TABLE IF NOT EXISTS _migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
+      const applied = new Set((await client.query<{ name: string }>('SELECT name FROM _migrations')).rows.map((r) => r.name));
+      for (const file of migrationFiles()) {
+        if (applied.has(file)) continue;
+        log(`applying ${file}`);
+        await client.exec(`BEGIN; ${readMigration(file)}; INSERT INTO _migrations (name) VALUES ('${file}'); COMMIT;`);
+      }
+      log('migrations up to date');
+    } finally {
+      await client.close();
+    }
+    return;
+  }
   const sql = postgres(databaseUrl, { max: 1, onnotice: () => {} });
   try {
     await sql`CREATE TABLE IF NOT EXISTS _migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`;
     const applied = new Set((await sql`SELECT name FROM _migrations`).map((r) => r.name as string));
-    const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
-    for (const file of files) {
+    for (const file of migrationFiles()) {
       if (applied.has(file)) continue;
-      const body = readFileSync(join(MIGRATIONS_DIR, file), 'utf8').replace(/--> statement-breakpoint/g, '');
       log(`applying ${file}`);
       await sql.begin(async (tx) => {
-        await tx.unsafe(body);
+        await tx.unsafe(readMigration(file));
         await tx`INSERT INTO _migrations (name) VALUES (${file})`;
       });
     }
@@ -27,8 +53,9 @@ export async function runMigrations(databaseUrl: string, log: (msg: string) => v
   }
 }
 
-/** Create the database if it does not exist (dev/test convenience). */
+/** Create the database if it does not exist (dev/test convenience). No-op for PGlite. */
 export async function ensureDatabase(databaseUrl: string) {
+  if (isPglite(databaseUrl)) return;
   const url = new URL(databaseUrl);
   const dbName = url.pathname.replace(/^\//, '');
   url.pathname = '/postgres';

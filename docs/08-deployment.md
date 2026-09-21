@@ -5,7 +5,7 @@
 | Component | Runtime | Notes |
 |---|---|---|
 | API (`apps/api`) | Node 22, single process, stateless | Scale horizontally behind a load balancer; sessions are in Postgres |
-| PostgreSQL 16 | managed instance recommended | `pgcrypto`-free; uses `gen_random_uuid()` from core. Enable daily backups + PITR |
+| PostgreSQL 16 (or embedded PGlite via `DATABASE_URL=pglite://…` for single-user/demo) | managed instance recommended | `pgcrypto`-free; uses `gen_random_uuid()` from core. Enable daily backups + PITR |
 | Object storage | S3-compatible bucket (`STORAGE_DRIVER=s3`) | Private bucket; the API streams uploads and serves signed URLs. Local disk works for single-node/dev |
 | Email | SMTP provider (`EMAIL_DRIVER=smtp`, optional `nodemailer`) | `console` in dev, `memory` in tests |
 | iPad client | Capacitor iOS app (App Store / TestFlight) | Points at `VITE_API_URL`; web build can also be hosted statically for browser use |
@@ -29,6 +29,10 @@ security migration enables row-level security on every tenant table and makes
 `activity_log` / `approvals` append-only. Run the API with a role that is not
 the table owner in production so RLS applies (`ALTER ROLE app NOBYPASSRLS`);
 the API sets `app.organization_id` per transaction when `withTenantTx` is used.
+
+## Single-process deployment
+
+Set `SERVE_CLIENT_DIR=apps/ipad/dist` (after `pnpm --filter @buildline/ipad build`) and the API serves the client at `/` with deep-link fallback; the client then talks to the same origin, so no CORS or `VITE_API_URL` configuration is needed.
 
 ## Production checklist
 

@@ -1,7 +1,9 @@
 import { db, type OutboxItem } from '../store/db';
 import { emit } from '../store/events';
 
-export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:4000';
+// Dev server talks to the API on :4000; a production build served by the API itself uses the same origin,
+// which also makes the app reachable from an iPad on the same Wi-Fi without any configuration.
+export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin);
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details?: unknown) { super(message); }

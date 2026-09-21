@@ -161,9 +161,9 @@ test.describe('iPad workflows', () => {
     await signIn(page);
     await openProject(page, /Harbor Point/);
     await section(page, 'Tasks');
-    await expect(page.getByRole('button', { name: 'To-do' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'To-do', exact: true })).toBeVisible();
     await context.setOffline(true);
-    await page.getByRole('button', { name: 'To-do' }).click();
+    await page.getByRole('button', { name: 'To-do', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Name').fill('Offline punch item');
     await dialog.getByRole('button', { name: 'Create' }).click();
@@ -171,8 +171,8 @@ test.describe('iPad workflows', () => {
     await expect(page.getByRole('status').filter({ hasText: /offline/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /1 queued/ })).toBeVisible();
     await context.setOffline(false);
-    await page.getByRole('button', { name: 'Sync now' }).click();
-    await expect(page.getByRole('button', { name: /queued/ })).toHaveCount(0, { timeout: 15_000 });
+    // Sync runs automatically when connectivity returns (online event + periodic retry); the queue drains on its own.
+    await expect(page.getByRole('button', { name: /queued/ })).toBeHidden({ timeout: 30_000 });
     await page.reload();
     await expect(page.getByTestId('task-row').filter({ hasText: 'Offline punch item' })).toBeVisible();
   });

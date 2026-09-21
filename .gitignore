@@ -12,3 +12,4 @@ apps/ipad/playwright-report
 apps/ipad/ios/App/Pods
 apps/ipad/ios/App/build
 .turbo
+data/

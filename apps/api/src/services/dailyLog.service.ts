@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { contracts } from '@buildline/core';
 import type { Deps } from './deps.js';
+import { rowsOf } from '../db/client.js';
 import type { DbOrTx } from '../db/client.js';
 import { dailyLogEntries, dailyLogs, projects, users } from '../db/schema/index.js';
 import { AppError } from '../lib/errors.js';
@@ -73,7 +74,7 @@ export class DailyLogService {
       if (input.status === 'submitted') {
         const managers = await tx.execute(sql`select pm.user_id from project_members pm where pm.project_id = ${projectId} and pm.user_id is not null and pm.access_level = 'manager'`);
         const [p] = await tx.select({ name: projects.name }).from(projects).where(eq(projects.id, projectId)).limit(1);
-        await this.notifications.notify(tx, { organizationId: ctx.organizationId, userIds: (managers as unknown as Array<{ user_id: string }>).map((m) => m.user_id), excludeUserId: ctx.userId, kind: 'daily_log.created', title: `Daily log posted for ${p!.name}`, body: `${ctx.actorName} posted the log for ${row!.logDate}.`, projectId, objectType: 'daily_log', objectId: row!.id, link: `/projects/${projectId}/daily-logs/${row!.id}` });
+        await this.notifications.notify(tx, { organizationId: ctx.organizationId, userIds: rowsOf<{ user_id: string }>(managers).map((m) => m.user_id), excludeUserId: ctx.userId, kind: 'daily_log.created', title: `Daily log posted for ${p!.name}`, body: `${ctx.actorName} posted the log for ${row!.logDate}.`, projectId, objectType: 'daily_log', objectId: row!.id, link: `/projects/${projectId}/daily-logs/${row!.id}` });
       }
       return row!.id;
     });

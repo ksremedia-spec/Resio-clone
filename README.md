@@ -22,10 +22,19 @@ docs/           Architecture, feature map, data model, API map, iPad
                 navigation, MVP plan, permission matrix, deployment.
 ```
 
-## Quick start
+## Try it without any setup (demo mode)
+
+Install Node.js 22+ from https://nodejs.org, then double-click
+`start-demo.command` (macOS) or run `./start-demo.sh`. It installs, builds,
+seeds demo data into an embedded database (PGlite, no PostgreSQL needed) and
+opens http://localhost:4000. Plain-English instructions, demo accounts and
+iPad-over-Wi-Fi steps are in `TESTING.md`.
+
+## Developer quick start
 
 Requirements: Node 22+, pnpm 10, PostgreSQL 16 reachable at
-`postgres://postgres@localhost:5432` (or set `DATABASE_URL`).
+`postgres://postgres@localhost:5432` (or set `DATABASE_URL`; use
+`pglite://./data/dev` for the embedded database).
 
 ```bash
 pnpm install

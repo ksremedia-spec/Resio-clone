@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { budgetCalc, type contracts } from '@buildline/core';
 import type { Deps } from './deps.js';
+import { rowsOf } from '../db/client.js';
 import { one } from '../lib/rows.js';
 import { approvals, budgetLines, changeOrders, clients, costCodes, invoices, messageThreads, projectFavorites, projects, taskAssignees, tasks, threadParticipants, users, bills, purchaseOrderLines, purchaseOrders, billLines } from '../db/schema/index.js';
 import type { RequestContext } from '../lib/context.js';
@@ -100,7 +101,7 @@ export class DashboardService {
           and ta.start_date is not null and tb.start_date is not null and ta.start_date <= tb.end_date and tb.start_date <= ta.end_date
           and ta.end_date >= ${today}
         order by overlap_start limit 10`);
-      const rows = conflictRows as unknown as Array<Record<string, string>>;
+      const rows = rowsOf<Record<string, string>>(conflictRows);
       response.scheduleConflicts = { count: rows.length, items: rows.map((r) => ({ resourceType: r.resource_type!, resourceName: r.resource_name!, taskAName: r.task_a!, taskBName: r.task_b!, projectAName: r.project_a!, projectBName: r.project_b!, overlapStart: String(r.overlap_start).slice(0, 10), overlapEnd: String(r.overlap_end).slice(0, 10) })) };
     }
 
