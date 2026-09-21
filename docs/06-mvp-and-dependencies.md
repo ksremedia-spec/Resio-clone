@@ -11,7 +11,7 @@
 | 5 | Create project schedules (phases, tasks, dependencies, cascade) | 2 | ✅ |
 | 6 | Assign tasks | 2 | ✅ |
 | 7 | Create daily logs | 2 | ✅ |
-| 8 | Upload photos/documents | 1/2 | ✅ |
+| 8 | Upload photos/documents (versions, folders, signed URLs, camera capture) | 1/2 | ✅ |
 | 9 | Communicate within projects | 2 | ✅ |
 | 10 | Create estimates | 3 | planned |
 | 11 | Create budgets | 3 | planned |
@@ -19,7 +19,13 @@
 | 13 | Create invoices | 3 | planned |
 | 14 | Secure client portal | 4 | planned |
 | 15 | Track project activity | 1 | ✅ |
-| 16 | iPad with intermittent connectivity | 1 (cache + outbox), 5 (full) | ✅ foundation |
+| 16 | iPad with intermittent connectivity | 1 (GET cache, outbox, offline photo queue, conflict surfacing), 5 (time clock, full pull sync) | ✅ foundation |
+
+## What is verified
+
+* `packages/core`: 23 unit tests (money, estimate maths, budget rollups, schedule engine).
+* `apps/api`: 30 integration tests against PostgreSQL (auth, invitations/roles, tenant isolation, permissions, optimistic concurrency, documents + signed URLs, schedule cascade/conflicts, daily logs, messaging, offline sync).
+* `apps/ipad`: Playwright at iPad Pro 11" landscape and portrait (sign-in, dashboard, project creation, schedule views, cascade via task sheet, daily log, task completion, messaging, document upload/sharing, clients, invitations/roles, global search, offline queue + sync, field mode, portrait layout).
 
 ## Build order and why
 

@@ -77,6 +77,8 @@ export const taskSchema = auditFields.extend({
 export type Task = z.infer<typeof taskSchema>;
 
 export const createTaskBody = z.object({
+  /** Optional client-generated id so offline creates are idempotent. */
+  id: uuid.optional(),
   kind: z.enum(TASK_KINDS).default('schedule'),
   phaseId: uuid.nullable().optional(),
   parentTaskId: uuid.nullable().optional(),
@@ -99,7 +101,7 @@ export const createTaskBody = z.object({
   sortOrder: z.number().int().optional(),
   clientMutationId: z.string().max(64).optional(),
 });
-export const updateTaskBody = patchOf(createTaskBody, ['kind', 'clientMutationId', 'predecessors', 'checklist']).extend({
+export const updateTaskBody = patchOf(createTaskBody, ['id', 'kind', 'clientMutationId', 'predecessors', 'checklist']).extend({
   percentComplete: z.number().int().min(0).max(100).optional(),
   locked: z.boolean().optional(),
   checklist: z.array(z.object({ id: uuid.optional(), text: z.string().max(300), done: z.boolean().default(false) })).max(100).optional(),

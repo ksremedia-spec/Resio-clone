@@ -67,6 +67,7 @@ export const dailyLogEntryInput = z.object({
 });
 
 export const createDailyLogBody = z.object({
+  id: uuid.optional(),
   logDate: isoDate,
   weather: weatherSchema.partial().optional(),
   summary: longText.default(''),
@@ -78,7 +79,7 @@ export const createDailyLogBody = z.object({
   attachmentDocumentIds: z.array(uuid).max(100).default([]),
   clientMutationId: z.string().max(64).optional(),
 });
-export const updateDailyLogBody = patchOf(createDailyLogBody, ['clientMutationId']).extend({ expectedVersion: z.number().int().optional() });
+export const updateDailyLogBody = patchOf(createDailyLogBody, ['id', 'clientMutationId']).extend({ expectedVersion: z.number().int().optional() });
 
 export const listDailyLogsQuery = paginationQuery.extend({
   projectId: uuid.optional(),

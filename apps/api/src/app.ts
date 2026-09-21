@@ -31,7 +31,7 @@ export async function buildApp(config: Config, overrides: { providers?: Partial<
   const providers = createProviders(config, overrides.providers);
   const services = createServices({ db, config, providers, log: fastify.log });
 
-  await fastify.register(cors, { origin: config.CORS_ORIGINS.split(',').map((s) => s.trim()), credentials: true, exposedHeaders: ['content-disposition'] });
+  await fastify.register(cors, { origin: config.CORS_ORIGINS.split(',').map((s) => s.trim()), credentials: true, methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['authorization', 'content-type', 'x-organization-id', 'accept'], exposedHeaders: ['content-disposition'] });
   await fastify.register(rateLimit, { max: config.RATE_LIMIT_MAX, timeWindow: '1 minute', keyGenerator: (req) => (req.headers.authorization ?? req.ip).slice(0, 80) });
   await fastify.register(multipart, { limits: { fileSize: config.MAX_UPLOAD_MB * 1024 * 1024, files: 10 } });
   await fastify.register(swagger, {

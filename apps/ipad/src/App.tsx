@@ -1,0 +1,79 @@
+import { lazy, Suspense, type ReactNode } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
+import { useSession } from './store/session';
+import { AppShell } from './layouts/AppShell';
+import { Spinner } from './ui/components';
+
+const SignIn = lazy(() => import('./features/auth/SignIn'));
+const Register = lazy(() => import('./features/auth/Register'));
+const AcceptInvite = lazy(() => import('./features/auth/AcceptInvite'));
+const ForgotPassword = lazy(() => import('./features/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./features/auth/ResetPassword'));
+const VerifyEmail = lazy(() => import('./features/auth/VerifyEmail'));
+const Dashboard = lazy(() => import('./features/dashboard/Dashboard'));
+const Projects = lazy(() => import('./features/projects/Projects'));
+const ProjectHub = lazy(() => import('./features/projects/ProjectHub'));
+const Clients = lazy(() => import('./features/clients/Clients'));
+const TaskManager = lazy(() => import('./features/tasks/TaskManager'));
+const CompanySchedule = lazy(() => import('./features/schedule/CompanySchedule'));
+const MessagesHome = lazy(() => import('./features/messages/MessagesHome'));
+const DocumentsHome = lazy(() => import('./features/documents/DocumentsHome'));
+const Settings = lazy(() => import('./features/settings/Settings'));
+const FieldMode = lazy(() => import('./features/field/FieldMode'));
+const ComingSoon = lazy(() => import('./features/ComingSoon'));
+
+function Centered({ children }: { children: ReactNode }) { return <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>{children}</div>; }
+
+function RequireAuth({ children }: { children: ReactNode }) {
+  const session = useSession();
+  const location = useLocation();
+  if (session.status === 'loading') return <Centered><Spinner /></Centered>;
+  if (session.status === 'anonymous') return <Navigate to="/sign-in" state={{ from: location.pathname }} replace />;
+  return <>{children}</>;
+}
+
+function HomeRedirect() {
+  const session = useSession();
+  if (session.membership?.defaultMode === 'field') return <Navigate to="/field" replace />;
+  return <Dashboard />;
+}
+
+export function App() {
+  return (
+    <Suspense fallback={<Centered><Spinner /></Centered>}>
+      <Routes>
+        <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/invite" element={<AcceptInvite />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/*" element={<RequireAuth><AppShell><Suspense fallback={<Centered><Spinner /></Centered>}>
+          <Routes>
+            <Route index element={<HomeRedirect />} />
+            <Route path="field" element={<FieldMode />} />
+            <Route path="field/:projectId" element={<FieldMode />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="projects/:projectId/*" element={<ProjectHub />} />
+            <Route path="clients" element={<Clients />} />
+            <Route path="clients/:clientId" element={<Clients />} />
+            <Route path="tasks" element={<TaskManager />} />
+            <Route path="schedule" element={<CompanySchedule />} />
+            <Route path="messages" element={<MessagesHome />} />
+            <Route path="messages/:threadId" element={<MessagesHome />} />
+            <Route path="documents" element={<DocumentsHome />} />
+            <Route path="settings/*" element={<Settings />} />
+            <Route path="leads" element={<ComingSoon title="Leads" phase="Phase 3" />} />
+            <Route path="vendors" element={<ComingSoon title="Vendors" phase="Phase 3" />} />
+            <Route path="estimating" element={<ComingSoon title="Estimating" phase="Phase 3" />} />
+            <Route path="budget" element={<ComingSoon title="Budget" phase="Phase 3" />} />
+            <Route path="invoices" element={<ComingSoon title="Invoices" phase="Phase 3" />} />
+            <Route path="reports" element={<ComingSoon title="Reports" phase="Phase 7" />} />
+            <Route path="assistant" element={<ComingSoon title="AI Assistant" phase="Phase 6" />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense></AppShell></RequireAuth>} />
+      </Routes>
+    </Suspense>
+  );
+}
