@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+coverage
+.env
+.env.local
+*.log
+.DS_Store
+storage/
+apps/ipad/test-results
+apps/ipad/playwright-report
+apps/ipad/ios/App/Pods
+apps/ipad/ios/App/build
+.turbo

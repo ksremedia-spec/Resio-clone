@@ -1,0 +1,18 @@
+{
+  "name": "buildline",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Buildline — iPad-first construction management platform",
+  "packageManager": "pnpm@10.33.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:ui": "pnpm --filter @buildline/ipad test:ui",
+    "dev:api": "pnpm --filter @buildline/api dev",
+    "dev:ipad": "pnpm --filter @buildline/ipad dev",
+    "db:migrate": "pnpm --filter @buildline/api db:migrate",
+    "db:seed": "pnpm --filter @buildline/api db:seed"
+  }
+}
