@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { budgetCalc, type contracts } from '@buildline/core';
 import type { Deps } from './deps.js';
-import { rowsOf } from '../db/client.js';
+import { rowsOf } from '../db/pglite-shared.js';
 import { one } from '../lib/rows.js';
 import { approvals, budgetLines, changeOrders, clients, costCodes, invoices, messageThreads, projectFavorites, projects, taskAssignees, tasks, threadParticipants, users, bills, purchaseOrderLines, purchaseOrders, billLines } from '../db/schema/index.js';
 import type { RequestContext } from '../lib/context.js';

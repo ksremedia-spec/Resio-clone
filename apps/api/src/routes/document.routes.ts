@@ -47,6 +47,7 @@ export async function documentRoutes(app: AppInstance, s: Services) {
     reply.header('content-length', String(file.sizeBytes));
     reply.header('content-disposition', `${file.disposition}; filename*=UTF-8''${encodeURIComponent(file.filename)}`);
     reply.header('cache-control', 'private, max-age=900');
-    return reply.send(file.stream);
+    const { Readable } = await import('node:stream');
+    return reply.send(Readable.from(file.stream));
   });
 }

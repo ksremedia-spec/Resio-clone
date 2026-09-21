@@ -82,7 +82,7 @@ export class NotificationService {
     if (deliveries.length) {
       const inserted = await tx.insert(notificationDeliveries).values(deliveries).returning({ id: notificationDeliveries.id });
       // Deliver after commit: schedule on next tick; failures are recorded, never thrown to the caller.
-      setImmediate(() => { void this.deliver(inserted.map((d) => d.id)); });
+      setTimeout(() => { void this.deliver(inserted.map((d) => d.id)); }, 0);
     }
     return rows.map((r) => r.id);
   }

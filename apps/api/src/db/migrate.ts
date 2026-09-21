@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import { mkdirSync } from 'node:fs';
 import { isPglite, pgliteDir } from './client.js';
+import { migratePglite } from './pglite-shared.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = join(here, '..', '..', 'drizzle');
@@ -22,14 +23,7 @@ export async function runMigrations(databaseUrl: string, log: (msg: string) => v
     const client = new PGlite(pgliteDir(databaseUrl));
     try {
       await client.waitReady;
-      await client.exec('CREATE TABLE IF NOT EXISTS _migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
-      const applied = new Set((await client.query<{ name: string }>('SELECT name FROM _migrations')).rows.map((r) => r.name));
-      for (const file of migrationFiles()) {
-        if (applied.has(file)) continue;
-        log(`applying ${file}`);
-        await client.exec(`BEGIN; ${readMigration(file)}; INSERT INTO _migrations (name) VALUES ('${file}'); COMMIT;`);
-      }
-      log('migrations up to date');
+      await migratePglite(client, migrationFiles().map((name) => ({ name, body: readMigration(name) })), log);
     } finally {
       await client.close();
     }

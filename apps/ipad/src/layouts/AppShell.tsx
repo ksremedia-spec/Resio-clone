@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
   const sidebar = (
     <nav className="sidebar" aria-label="Main navigation">
-      <div className="sidebar-brand"><img src="/icon.svg" alt="" /> Buildline{compact && <button className="btn quiet icon" style={{ marginLeft: 'auto' }} aria-label="Close menu" onClick={() => setOpen(false)}><Icon name="close" /></button>}</div>
+      <div className="sidebar-brand"><img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" /> Buildline{compact && <button className="btn quiet icon" style={{ marginLeft: 'auto' }} aria-label="Close menu" onClick={() => setOpen(false)}><Icon name="close" /></button>}</div>
       <div className="sidebar-nav">
         {session.membership?.defaultMode === 'field' && <NavLink to="/field" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon name="hardhat" /> Field mode</NavLink>}
         {NAV.filter((n) => { const p = NAV_PERMISSIONS[n.key]; return !p || session.has(p); }).map((n) => (

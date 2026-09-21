@@ -1,6 +1,7 @@
 import type { Config } from '../config.js';
 import { ConsoleEmailProvider, MemoryEmailProvider, SmtpEmailProvider, type EmailProvider } from './email.js';
-import { LocalDiskStorage, S3Storage, type StorageProvider } from './storage.js';
+import type { StorageProvider } from './storage.js';
+import { LocalDiskStorage, S3Storage } from './storage.node.js';
 import { nullPayments, nullPush, nullSms, nullWeather, type PaymentProvider, type PushProvider, type SmsProvider, type WeatherProvider } from './integrations.js';
 
 export interface Providers {

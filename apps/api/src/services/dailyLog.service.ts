@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { contracts } from '@buildline/core';
 import type { Deps } from './deps.js';
-import { rowsOf } from '../db/client.js';
+import { rowsOf } from '../db/pglite-shared.js';
 import type { DbOrTx } from '../db/client.js';
 import { dailyLogEntries, dailyLogs, projects, users } from '../db/schema/index.js';
 import { AppError } from '../lib/errors.js';

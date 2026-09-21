@@ -1,12 +1,14 @@
+import { base64UrlToBytes, bytesToBase64Url, utf8 } from './base64.js';
+
 /** Opaque cursor helpers for keyset pagination. */
 export function encodeCursor(parts: Record<string, string | number | null>): string {
-  return Buffer.from(JSON.stringify(parts)).toString('base64url');
+  return bytesToBase64Url(utf8.encode(JSON.stringify(parts)));
 }
 
 export function decodeCursor<T extends Record<string, string | number | null>>(cursor: string | undefined): T | null {
   if (!cursor) return null;
   try {
-    return JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as T;
+    return JSON.parse(utf8.decode(base64UrlToBytes(cursor))) as T;
   } catch {
     return null;
   }

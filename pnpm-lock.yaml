@@ -34,6 +34,9 @@ importers:
       '@fastify/swagger-ui':
         specifier: ^5.2.0
         version: 5.2.6
+      '@noble/hashes':
+        specifier: ^2.4.0
+        version: 2.4.0
       drizzle-orm:
         specifier: ^0.45.0
         version: 0.45.3(@electric-sql/pglite@0.3.16)(postgres@3.4.9)
@@ -101,12 +104,21 @@ importers:
       '@capacitor/status-bar':
         specifier: ^7.0.0
         version: 7.0.6(@capacitor/core@7.6.9)
+      '@electric-sql/pglite':
+        specifier: ^0.3.16
+        version: 0.3.16
+      '@noble/hashes':
+        specifier: ^2.4.0
+        version: 2.4.0
       '@tanstack/react-query':
         specifier: ^5.80.0
         version: 5.103.2(react@19.3.0)
       dexie:
         specifier: ^4.0.11
         version: 4.4.6
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@electric-sql/pglite@0.3.16)(postgres@3.4.9)
       react:
         specifier: ^19.1.0
         version: 19.3.0
@@ -126,6 +138,9 @@ importers:
       '@playwright/test':
         specifier: ^1.53.0
         version: 1.63.0
+      '@types/node':
+        specifier: ^22.20.4
+        version: 22.20.4
       '@types/react':
         specifier: ^19.1.0
         version: 19.3.0
@@ -864,6 +879,10 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [glibc]
+
+  '@noble/hashes@2.4.0':
+    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
+    engines: {node: '>= 20.19.0'}
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -2669,6 +2688,8 @@ snapshots:
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
+
+  '@noble/hashes@2.4.0': {}
 
   '@pinojs/redact@0.4.0': {}
 

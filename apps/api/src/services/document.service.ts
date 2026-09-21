@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
-import type { Readable } from 'node:stream';
+import { randomUUID } from '../lib/crypto.js';
+import type { UploadBody } from '../providers/storage.js';
 import type { contracts } from '@buildline/core';
 import type { Deps } from './deps.js';
 import { one } from '../lib/rows.js';
@@ -157,7 +157,7 @@ export class DocumentService {
    * written to the storage provider first; the database row is created only
    * once the bytes are safely stored.
    */
-  async upload(ctx: RequestContext, file: { stream: Readable | Buffer; filename: string; contentType: string }, input: UploadInput): Promise<contracts.Document> {
+  async upload(ctx: RequestContext, file: { stream: UploadBody; filename: string; contentType: string }, input: UploadInput): Promise<contracts.Document> {
     ctx.require('documents.write');
     const { db, providers } = this.deps;
     if (input.projectId) await ctx.requireProjectAccess(db, input.projectId);
@@ -232,6 +232,8 @@ export class DocumentService {
   // ---------- download ----------
 
   signedUrl(ctx: { organizationId: string }, versionId: string, disposition: 'inline' | 'attachment' = 'inline', ttlMs = 15 * 60_000): string {
+    const direct = this.deps.providers.storage.urlFor?.(versionId);
+    if (direct) return direct;
     const expiresAt = Date.now() + ttlMs;
     const sig = signDownload(this.deps.config.APP_SECRET, { versionId, orgId: ctx.organizationId, expiresAt, disposition });
     return `${this.deps.config.API_URL}/v1/files/${versionId}?org=${ctx.organizationId}&exp=${expiresAt}&d=${disposition}&sig=${sig}`;

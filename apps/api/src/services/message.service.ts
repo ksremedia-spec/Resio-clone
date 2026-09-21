@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, or, sql, ilike } from 'drizzle-orm';
 import type { contracts } from '@buildline/core';
 import type { Deps } from './deps.js';
-import { rowsOf } from '../db/client.js';
+import { rowsOf } from '../db/pglite-shared.js';
 import type { DbOrTx } from '../db/client.js';
 import { contacts, memberships, messageThreads, messages, projects, threadParticipants, users, vendors } from '../db/schema/index.js';
 import { AppError } from '../lib/errors.js';
