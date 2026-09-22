@@ -11,6 +11,7 @@ import type { DocumentService } from './document.service.js';
 import { decodeCursor, encodeCursor, page } from '../lib/pagination.js';
 import { nextNumber } from '../lib/numbering.js';
 import { usersWithPermission } from '../lib/recipients.js';
+import { vendorIdFor } from '../lib/portal.js';
 
 type PoRow = typeof purchaseOrders.$inferSelect;
 type BillRow = typeof bills.$inferSelect;
@@ -34,6 +35,7 @@ export class ProcurementService {
     ctx.require('purchasing.read');
     const { db } = this.deps;
     const conditions = [eq(purchaseOrders.organizationId, ctx.organizationId), isNull(purchaseOrders.archivedAt)];
+    if (ctx.membership.external) { const mine = await vendorIdFor(db, ctx); conditions.push(mine ? eq(purchaseOrders.vendorId, mine) : sql`false`, inArray(purchaseOrders.status, ['committed', 'matched', 'closed'])); }
     if (query.projectId) { await ctx.requireProjectAccess(db, query.projectId, { allowArchived: true }); conditions.push(eq(purchaseOrders.projectId, query.projectId)); }
     else { const visible = await ctx.visibleProjectIds(db); if (visible) conditions.push(visible.length ? inArray(purchaseOrders.projectId, visible) : sql`false`); }
     if (query.vendorId) conditions.push(eq(purchaseOrders.vendorId, query.vendorId));
@@ -57,6 +59,7 @@ export class ProcurementService {
     const [r] = await db.select({ po: purchaseOrders, vendorName: vendors.name, projectName: projects.name }).from(purchaseOrders).leftJoin(vendors, eq(vendors.id, purchaseOrders.vendorId)).innerJoin(projects, eq(projects.id, purchaseOrders.projectId)).where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.organizationId, ctx.organizationId))).limit(1);
     if (!r) throw AppError.notFound('Purchase order');
     await ctx.requireProjectAccess(db, r.po.projectId, { allowArchived: true });
+    if (ctx.membership.external) { const mine = await vendorIdFor(db, ctx); if (!mine || r.po.vendorId !== mine || !['committed', 'matched', 'closed'].includes(r.po.status)) throw AppError.notFound('Purchase order'); }
     const lines = await this.poLines(db, [id]);
     const attachments = await this.documents.attachmentsFor(db, ctx, 'purchase_order', [id]);
     return serializePo(r.po, r.vendorName, r.projectName, lines.get(id) ?? [], (attachments.get(id) ?? []).map((a) => a.document));

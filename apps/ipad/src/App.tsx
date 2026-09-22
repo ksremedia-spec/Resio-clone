@@ -21,6 +21,8 @@ const DocumentsHome = lazy(() => import('./features/documents/DocumentsHome'));
 const Settings = lazy(() => import('./features/settings/Settings'));
 const FieldMode = lazy(() => import('./features/field/FieldMode'));
 const PortalHome = lazy(() => import('./features/portal/PortalHome'));
+const VendorHome = lazy(() => import('./features/portal/VendorHome'));
+const TimePage = lazy(() => import('./features/time/TimePage'));
 const Estimating = lazy(() => import('./features/estimating/Estimating'));
 const BudgetOverview = lazy(() => import('./features/budget/BudgetOverview'));
 const InvoicesHome = lazy(() => import('./features/invoices/InvoicesHome'));
@@ -40,7 +42,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function HomeRedirect() {
   const session = useSession();
   if (session.membership?.defaultMode === 'field') return <Navigate to="/field" replace />;
-  if (session.membership?.external) return <PortalHome />;
+  if (session.membership?.external) return session.membership.roleKey === 'vendor' ? <VendorHome /> : <PortalHome />;
   return <Dashboard />;
 }
 
@@ -59,6 +61,8 @@ export function App() {
             <Route index element={<HomeRedirect />} />
             <Route path="field" element={<FieldMode />} />
             <Route path="field/:projectId" element={<FieldMode />} />
+            <Route path="bids/:bidRequestId" element={<VendorHome />} />
+            <Route path="time" element={<TimePage />} />
             <Route path="projects" element={<Projects />} />
             <Route path="projects/:projectId/*" element={<ProjectHub />} />
             <Route path="clients" element={<Clients />} />

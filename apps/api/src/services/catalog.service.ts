@@ -27,7 +27,7 @@ export class CatalogService {
   // ---------- cost codes ----------
 
   async listCostCodes(ctx: RequestContext, includeArchived = false): Promise<contracts.CostCode[]> {
-    ctx.requireAny('estimates.read', 'budget.read', 'purchasing.read', 'bills.read');
+    ctx.requireAny('estimates.read', 'budget.read', 'purchasing.read', 'bills.read', 'time.clock');
     const { db } = this.deps;
     let rows = await db.select().from(costCodes).where(and(eq(costCodes.organizationId, ctx.organizationId), includeArchived ? sql`true` : isNull(costCodes.archivedAt))).orderBy(asc(costCodes.code));
     if (rows.length === 0 && ctx.has('estimates.write')) { await this.seedDefaults(ctx); rows = await db.select().from(costCodes).where(eq(costCodes.organizationId, ctx.organizationId)).orderBy(asc(costCodes.code)); }

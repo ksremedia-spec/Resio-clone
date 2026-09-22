@@ -193,6 +193,30 @@ export async function seedDemo(services: Services, db: Db, log: (m: string) => v
     const portalInvite = await services.organizations.invite(owner, { email: 'jane@example.com', roleId: clientRole.id, firstName: 'Jane', lastName: 'Smith', projectIds: [smithProject.id] });
     await services.organizations.acceptInvitation({ token: new URL(portalInvite.acceptUrl!).searchParams.get('token')!, password: DEMO_OWNER.password, firstName: 'Jane', lastName: 'Smith' }, null);
     log('created proposal, selections and the homeowner portal account (jane@example.com)');
+
+    // ---- field: hourly costs, time entries, a vendor portal account and a bid request ----
+    const memberRows = await services.organizations.listMembers(owner);
+    const rates: Record<string, number> = { field_supervisor: 6_500, field_crew: 4_200, project_manager: 8_500 };
+    for (const [key, rate] of Object.entries(rates)) { const m = memberRows.find((x) => x.userId === members[key]); if (m) await services.organizations.updateMember(owner, m.id, { hourlyCostCents: rate }); }
+    const crew = (await services.auth.buildContext({ sessionId: null as unknown as string, user: (await db.select().from(users).where(eq(users.id, members.field_crew!)))[0]!, activeOrganizationId: owner.organizationId }, owner.organizationId, {}))!;
+    const day = (d: number, h: number, m = 0) => { const dt = new Date('2026-09-14T12:00:00Z'); dt.setUTCDate(dt.getUTCDate() + d); dt.setUTCHours(h, m, 0, 0); return dt.toISOString(); };
+    const approved: string[] = [];
+    for (let d = 0; d < 5; d++) {
+      const e1 = await services.time.create(crew, { projectId: smithProject.id, costCodeId: code('Rough Carpentry / Framing'), clockInAt: day(d, 12, 0), clockOutAt: day(d, 20, 30), breakSeconds: 1800, notes: d === 2 ? 'Left early for a dentist appointment.' : '' });
+      const e2 = await services.time.create(sup, { projectId: smithProject.id, costCodeId: code('Supervision'), clockInAt: day(d, 11, 30), clockOutAt: day(d, 21, 0), breakSeconds: 1800, notes: '' });
+      if (d < 3) approved.push(e1.id, e2.id);
+    }
+    await services.time.decide(pm, { ids: approved, decision: 'approved' });
+    await services.time.create(crew, { projectId: smithProject.id, costCodeId: code('Demolition'), clockInAt: day(7, 12, 0), clockOutAt: day(7, 16, 0), breakSeconds: 0, notes: 'Hauled demo debris to the dumpster.' });
+    log('created time entries (three days approved, the rest awaiting approval)');
+
+    const vendorRole = roles.find((r) => r.key === 'vendor')!;
+    const vendorInvite = await services.organizations.invite(owner, { email: 'orders@hillcountrycabinets.example', roleId: vendorRole.id, firstName: 'Hank', lastName: 'Cabot', projectIds: [smithProject.id] });
+    await services.organizations.acceptInvitation({ token: new URL(vendorInvite.acceptUrl!).searchParams.get('token')!, password: DEMO_OWNER.password, firstName: 'Hank', lastName: 'Cabot' }, null);
+    const bidReq = await services.bids.create(pm, bakerProject.id, { title: 'Foundation and slab — Baker addition', scope: 'Excavate, form and pour a 600 sq ft slab-on-grade with perimeter footings per plan S-1. Include vapor barrier and rebar. Concrete pump if needed.', costCodeId: code('Concrete'), dueDate: '2026-10-05', vendorIds: [plumber.id, cabinetsVendor.id] });
+    await services.bids.send(pm, bidReq.id);
+    await services.bids.submitBid(pm, bidReq.id, { vendorId: plumber.id, amountCents: 1_785_000, notes: 'Includes pump. 2 weeks lead time.', validUntil: '2026-11-01' });
+    log('created the vendor portal account (orders@hillcountrycabinets.example) and a bid request');
     log('seed complete');
     return true;
 }

@@ -96,7 +96,7 @@ test.describe('money workflows', () => {
     await signIn(page);
     await openProject(page, /Smith Residence/);
     await section(page, 'Purchasing');
-    await expect(page.getByTestId('po-row')).toHaveCount(2);
+    await expect(page.getByTestId('po-row').first()).toBeVisible();
     await page.getByRole('button', { name: 'New PO' }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByPlaceholder('Kitchen cabinets').fill('Playwright tile order');

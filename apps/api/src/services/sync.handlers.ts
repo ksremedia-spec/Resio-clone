@@ -37,6 +37,12 @@ export function registerSyncHandlers(s: Services) {
     return { version: log.version, data: log };
   });
 
+  sync.registerHandler('time_entry', 'create', async (ctx, m) => {
+    const body = contracts.manualTimeEntryBody.parse(m.data);
+    const entry = await s.time.create(ctx, body);
+    return { version: entry.version, data: entry };
+  });
+
   sync.registerHandler('message', 'create', async (ctx, m) => {
     const { threadId, ...rest } = m.data as { threadId: string } & Record<string, unknown>;
     if (!threadId) throw AppError.validation('threadId is required');

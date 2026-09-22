@@ -75,7 +75,7 @@ schedule cascading and conflicts, daily logs, messaging and offline sync.
 
 ## Status
 
-Phases 1 (foundation), 2 (project core), 3 (financial core) and 4 (client
-experience: proposals, selections, client portal, online payment) are implemented with tests.
-Phases 5–7 (field completion, AI,
+Phases 1 (foundation), 2 (project core), 3 (financial core), 4 (client
+experience) and 5 (time clock, payroll export, bid requests, vendor portal) are
+implemented with tests. Phases 6–7 (AI,
 advanced) have their database schema in place and are the next slices.

@@ -249,6 +249,35 @@ export function buildRoutes(s: Services, config: { NODE_ENV: string }): Route[] 
   add('GET', '/v1/approvals', async (r) => s.portal.listApprovals(requireCtx(r), q(c.listApprovalsQuery, r)));
   add('GET', '/v1/portal/overview', async (r) => s.portal.overview(requireCtx(r)));
 
+  // ---- time clock ----
+  add('GET', '/v1/time/current', async (r) => s.time.current(requireCtx(r)));
+  add('POST', '/v1/time/clock-in', async (r) => s.time.clockIn(requireCtx(r), r.body ? b(c.clockInBody, r) : {}), 201);
+  add('POST', '/v1/time/clock-out', async (r) => s.time.clockOut(requireCtx(r), r.body ? b(c.clockOutBody, r) : {}));
+  add('POST', '/v1/time/break/start', async (r) => s.time.startBreak(requireCtx(r)));
+  add('POST', '/v1/time/break/end', async (r) => s.time.endBreak(requireCtx(r)));
+  add('GET', '/v1/time/entries', async (r) => s.time.list(requireCtx(r), q(c.listTimeQuery, r)));
+  add('GET', '/v1/projects/:id/time', async (r) => s.time.list(requireCtx(r), { ...q(c.listTimeQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
+  add('POST', '/v1/time/entries', async (r) => s.time.create(requireCtx(r), b(c.manualTimeEntryBody, r)), 201);
+  add('GET', '/v1/time/timesheet', async (r) => s.time.timesheet(requireCtx(r), q(c.timesheetQuery, r)));
+  add('GET', '/v1/time/entries/:id', async (r) => s.time.get(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/time/entries/:id', async (r) => s.time.update(requireCtx(r), r.params.id!, b(c.updateTimeEntryBody, r)));
+  add('POST', '/v1/time/decide', async (r) => s.time.decide(requireCtx(r), b(c.timeDecisionBody, r)));
+  add('POST', '/v1/time/payroll-export', async (r) => s.time.payrollExport(requireCtx(r), b(c.payrollExportBody, r)));
+
+  // ---- bid requests & vendor portal ----
+  add('GET', '/v1/bid-requests', async (r) => s.bids.list(requireCtx(r), q(c.listBidRequestsQuery, r)));
+  add('GET', '/v1/projects/:id/bid-requests', async (r) => s.bids.list(requireCtx(r), { ...q(c.listBidRequestsQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
+  add('POST', '/v1/projects/:id/bid-requests', async (r) => s.bids.create(requireCtx(r), r.params.id!, b(c.createBidRequestBody, r)), 201);
+  add('GET', '/v1/bid-requests/:id', async (r) => s.bids.get(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/bid-requests/:id', async (r) => s.bids.update(requireCtx(r), r.params.id!, b(c.updateBidRequestBody, r)));
+  add('POST', '/v1/bid-requests/:id/send', async (r) => s.bids.send(requireCtx(r), r.params.id!));
+  add('POST', '/v1/bid-requests/:id/bids', async (r) => s.bids.submitBid(requireCtx(r), r.params.id!, b(c.submitBidBody.extend({ vendorId: z.uuid().optional() }), r)));
+  add('POST', '/v1/bid-requests/:id/decline', async (r) => s.bids.declineBid(requireCtx(r), r.params.id!));
+  add('POST', '/v1/bid-requests/:id/award', async (r) => s.bids.award(requireCtx(r), r.params.id!, b(c.awardBidBody, r)));
+  add('POST', '/v1/bid-requests/:id/close', async (r) => s.bids.close(requireCtx(r), r.params.id!));
+  add('GET', '/v1/portal/vendor/overview', async (r) => s.bids.vendorOverview(requireCtx(r)));
+  add('POST', '/v1/purchase-orders/:id/acknowledge', async (r) => s.bids.acknowledgePurchaseOrder(requireCtx(r), r.params.id!));
+
   // ---- sync ----
   add('GET', '/v1/sync/pull', async (r) => s.sync.pull(requireCtx(r), q(c.syncPullQuery, r)));
   add('POST', '/v1/sync/push', async (r) => ({ results: await s.sync.push(requireCtx(r), b(c.syncPushBody, r).mutations) }));

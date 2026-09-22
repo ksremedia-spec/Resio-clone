@@ -23,6 +23,7 @@ const NAV: Array<{ key: keyof typeof NAV_PERMISSIONS; to: string; label: string;
   { key: 'invoices', to: '/invoices', label: 'Invoices', icon: 'invoices' },
   { key: 'messages', to: '/messages', label: 'Messages', icon: 'messages', section: 'Work' },
   { key: 'documents', to: '/documents', label: 'Documents', icon: 'documents' },
+  { key: 'time', to: '/time', label: 'Time', icon: 'clock' },
   { key: 'reports', to: '/reports', label: 'Reports', icon: 'reports' },
   { key: 'ai', to: '/assistant', label: 'AI Assistant', icon: 'ai' },
   { key: 'settings', to: '/settings', label: 'Settings', icon: 'settings', section: 'Company' },

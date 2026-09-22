@@ -4,7 +4,7 @@ import { addressSchema, auditFields, cents, colorHex, isoDate, isoDateTime, long
 export const PROJECT_STATUSES = ['lead', 'pre_construction', 'active', 'on_hold', 'complete', 'archived'] as const;
 export const PROJECT_TYPES = ['new_construction', 'remodel', 'addition', 'commercial', 'service', 'other'] as const;
 export const CONTRACT_TYPES = ['fixed_price', 'cost_plus', 'time_and_materials'] as const;
-export const PROJECT_ACCESS_LEVELS = ['manager', 'member', 'viewer'] as const;
+export const PROJECT_ACCESS_LEVELS = ['manager', 'member', 'viewer', 'vendor'] as const;
 
 export const projectSummary = auditFields.extend({
   number: z.string(),

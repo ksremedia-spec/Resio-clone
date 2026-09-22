@@ -24,6 +24,7 @@ const sectionModules = {
   purchasing: () => import('../purchasing/ProjectPurchasing'),
   proposals: () => import('../proposals/ProjectProposals'),
   selections: () => import('../selections/ProjectSelections'),
+  time: () => import('../time/ProjectTime'),
 };
 const ProjectSchedule = lazy(sectionModules.schedule);
 const ProjectTasks = lazy(sectionModules.tasks);
@@ -37,6 +38,7 @@ const ProjectInvoices = lazy(sectionModules.invoices);
 const ProjectPurchasing = lazy(sectionModules.purchasing);
 const ProjectProposals = lazy(sectionModules.proposals);
 const ProjectSelections = lazy(sectionModules.selections);
+const ProjectTime = lazy(sectionModules.time);
 /** Warm every section chunk once a project opens so sections keep working if connectivity drops afterwards. */
 function prefetchSections() { for (const load of Object.values(sectionModules)) void load().catch(() => {}); }
 
@@ -127,7 +129,7 @@ export default function ProjectHub() {
           <Route path="invoices" element={<ProjectInvoices project={project} />} />
           <Route path="invoices/:invoiceId" element={<ProjectInvoices project={project} />} />
           <Route path="purchasing" element={<ProjectPurchasing project={project} />} />
-          <Route path="time" element={<ComingSoonSection title="Time clock" phase="Phase 5" />} />
+          <Route path="time" element={<ProjectTime project={project} />} />
           <Route path="*" element={<Navigate to="" replace />} />
         </Routes>
       </Suspense>

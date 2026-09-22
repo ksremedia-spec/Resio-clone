@@ -6,6 +6,7 @@ import { Badge, Button, Card, EmptyState, Icon, ListRow, Select, Skeleton, Toolb
 import { dateShort, todayIso } from '../../ui/format';
 import { useSession } from '../../store/session';
 import type { IconName } from '../../ui/icons';
+import { ClockWidget } from '../time/ClockWidget';
 
 /**
  * Field mode: one project, six big actions, today's work. Designed for a
@@ -40,6 +41,7 @@ export default function FieldMode() {
       {isLoading && !project && <Skeleton lines={4} />}
       {project && <>
         <div className="row-between"><div><h2>{project.name}</h2><div className="subtle">{project.address.line1}{project.address.city ? `, ${project.address.city}` : ''} · {dateShort(today)}</div></div><Button variant="quiet" onClick={() => navigate(`/projects/${project.id}`)}>Open project hub <Icon name="arrowRight" size={16} /></Button></div>
+        {session.has('time.clock') && <Card title="Time clock"><ClockWidget projectId={project.id} /></Card>}
         <div className="field-grid">{tiles.map((t) => <button key={t.label} className={`field-tile ${t.primary ? 'primary' : ''}`} onClick={() => navigate(t.to)}><Icon name={t.icon} size={36} /><span className="label">{t.label}</span></button>)}</div>
         <Card title="Today's tasks" actions={<a onClick={() => navigate(`/projects/${project.id}/tasks`)}>All tasks</a>}>
           {todays.length === 0 ? <p className="muted">Nothing scheduled for today on this project.</p> : <div className="list">{todays.map((t) => <ListRow key={t.id} onClick={() => navigate(`/projects/${project.id}/tasks/${t.id}`)} leading={<Icon name={t.status === 'complete' ? 'checkCircle' : t.isMilestone ? 'flag' : 'circle'} />} primary={t.name} secondary={`${t.assignees.map((a) => a.displayName).join(', ') || 'Unassigned'}${t.endDate ? ` · until ${dateShort(t.endDate)}` : ''}`} trailing={<>{t.dueDate && t.dueDate < today && <Badge tone="danger">overdue</Badge>}<Badge>{t.status.replace('_', ' ')}</Badge></>} />)}</div>}

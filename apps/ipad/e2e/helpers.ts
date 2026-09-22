@@ -8,7 +8,8 @@ export async function signIn(page: Page, email = DEMO.email, password = DEMO.pas
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
   // Office roles land on the dashboard; field roles land in field mode.
-  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)|Field mode/ })).toBeVisible();
+  // Office roles land on the dashboard; field roles in field mode; portal accounts on their home page.
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)|Field mode|^Hi / })).toBeVisible();
 }
 
 /** Click a sidebar item, opening the overlay menu first in compact (portrait) layouts. */

@@ -21,6 +21,8 @@ import { InvoiceService } from './invoice.service.js';
 import { ProposalService } from './proposal.service.js';
 import { SelectionService } from './selection.service.js';
 import { PortalService } from './portal.service.js';
+import { TimeService } from './time.service.js';
+import { BidService } from './bid.service.js';
 import { registerSyncHandlers } from './sync.handlers.js';
 
 export function createServices(deps: Deps) {
@@ -46,7 +48,9 @@ export function createServices(deps: Deps) {
   const proposals = new ProposalService(deps, activity, notifications, documents, estimates);
   const selections = new SelectionService(deps, activity, notifications, changeOrders);
   const portal = new PortalService(deps, projects);
-  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices, proposals, selections, portal };
+  const time = new TimeService(deps, activity, notifications);
+  const bids = new BidService(deps, activity, notifications, documents, procurement);
+  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices, proposals, selections, portal, time, bids };
   registerSyncHandlers(services);
   return services;
 }

@@ -7,13 +7,14 @@ import { dateShort, dateTime, humanize, money, todayIso } from '../../ui/format'
 import { useSession } from '../../store/session';
 import { BudgetLineSelect, Money, MoneyInput, OverBadge, QuantityInput } from '../financial/shared';
 import { PaymentSheet } from '../invoices/ProjectInvoices';
+import { BidRequests } from './BidRequests';
 
 const inv = (projectId: string) => [`/v1/projects/${projectId}`, '/v1/purchase-orders', '/v1/bills', '/v1/budget', '/v1/vendors', '/v1/dashboard'];
 
 export default function ProjectPurchasing({ project }: { project: contracts.ProjectDetail }) {
   const session = useSession();
   const [params, setParams] = useSearchParams();
-  const tab = (params.get('tab') as 'po' | 'bills') ?? (params.get('bill') ? 'bills' : 'po');
+  const tab = (params.get('tab') as 'po' | 'bills' | 'bids') ?? (params.get('bill') ? 'bills' : params.get('bid') ? 'bids' : 'po');
   const [poStatus, setPoStatus] = useState<'open' | 'all'>('open');
   const [billStatus, setBillStatus] = useState<'open' | 'paid' | 'all'>('open');
   const { data: pos, error: poErr, refetch: refetchPos } = useResource<{ items: contracts.PurchaseOrder[] }>(session.has('purchasing.read') ? `/v1/projects/${project.id}/purchase-orders?status=${poStatus}&limit=200` : null);
@@ -27,18 +28,19 @@ export default function ProjectPurchasing({ project }: { project: contracts.Proj
   return (
     <div className="page-inner stack" style={{ gap: 'var(--sp-4)' }}>
       <div className="row wrap">
-        <Segmented value={tab} onChange={(t) => set({ tab: t })} ariaLabel="Purchasing view" options={[{ value: 'po', label: 'Purchase orders' }, { value: 'bills', label: 'Bills' }]} />
-        {tab === 'po' ? <Segmented value={poStatus} onChange={setPoStatus} ariaLabel="PO status" options={[{ value: 'open', label: 'Open' }, { value: 'all', label: 'All' }]} /> : <Segmented value={billStatus} onChange={setBillStatus} ariaLabel="Bill status" options={[{ value: 'open', label: 'Open' }, { value: 'paid', label: 'Paid' }, { value: 'all', label: 'All' }]} />}
+        <Segmented value={tab} onChange={(t) => set({ tab: t })} ariaLabel="Purchasing view" options={[{ value: 'po', label: 'Purchase orders' }, ...(session.has('bills.read') ? [{ value: 'bills' as const, label: 'Bills' }] : []), { value: 'bids' as const, label: 'Bid requests' }]} />
+        {tab === 'bids' ? null : tab === 'po' ? <Segmented value={poStatus} onChange={setPoStatus} ariaLabel="PO status" options={[{ value: 'open', label: 'Open' }, { value: 'all', label: 'All' }]} /> : <Segmented value={billStatus} onChange={setBillStatus} ariaLabel="Bill status" options={[{ value: 'open', label: 'Open' }, { value: 'paid', label: 'Paid' }, { value: 'all', label: 'All' }]} />}
         <span className="grow" />
         {tab === 'po' && canPo && <Button variant="primary" icon="plus" onClick={() => set({ tab: 'po', new: 'po' })}>New PO</Button>}
         {tab === 'bills' && canBill && <Button variant="primary" icon="plus" onClick={() => set({ tab: 'bills', new: 'bill' })}>New bill</Button>}
+        {tab === 'bids' && canPo && <Button variant="primary" icon="plus" onClick={() => set({ tab: 'bids', bid: 'new' })}>Request bids</Button>}
       </div>
-      <div className="stat-row">
+      {!session.membership?.external && <div className="stat-row">
         <Stat label="Committed (open POs)" value={money(f.committedCents)} />
         <Stat label="Billed to date" value={money(f.actualCents)} />
         <Stat label="Budget" value={money(f.budgetRevisedCents)} />
         <Stat label="Unbilled commitments" value={money(Math.max(0, f.committedCents))} />
-      </div>
+      </div>}
       {tab === 'po' && <>
         {poErr && !pos && <ErrorState error={poErr} retry={() => void refetchPos()} />}
         {!pos && !poErr && <div className="card"><Skeleton lines={4} /></div>}
@@ -57,6 +59,7 @@ export default function ProjectPurchasing({ project }: { project: contracts.Proj
           <span className="trailing"><OverBadge cents={b.overPoCents} /><Money cents={b.totalCents} /><StatusBadge status={b.status} /><Icon name="chevronRight" size={16} /></span>
         </button>)}</div></div>}
       </>}
+      {tab === 'bids' && <BidRequests project={project} selectedId={params.get('bid')} onSelect={(id) => set(id ? { tab: 'bids', bid: id } : { tab: 'bids' })} creating={params.get('bid') === 'new'} onCloseCreate={() => set({ tab: 'bids' })} />}
       {params.get('new') === 'po' && <PoSheet project={project} onClose={() => set({ tab: 'po' })} onSaved={(po) => set({ tab: 'po', po: po.id })} />}
       {params.get('new') === 'bill' && <BillSheet project={project} purchaseOrderId={params.get('fromPo')} onClose={() => set({ tab: 'bills' })} onSaved={(b) => set({ tab: 'bills', bill: b.id })} />}
       {poId && <PoDetail project={project} poId={poId} onClose={() => set({ tab: 'po' })} onBill={() => set({ tab: 'bills', new: 'bill', fromPo: poId })} />}

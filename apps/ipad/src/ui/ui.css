@@ -285,3 +285,9 @@ p { margin: 0; }
 .option-card { text-align: left; background: var(--bg-elev); border: 2px solid var(--line); border-radius: var(--radius-lg); padding: var(--sp-3); display: flex; flex-direction: column; gap: 4px; min-height: var(--touch); }
 .option-card.selected { border-color: var(--brand); background: var(--brand-soft); }
 .option-card:disabled { opacity: 0.85; }
+
+/* ---- time clock ---- */
+.clock { border-radius: var(--radius-lg); padding: var(--sp-4); background: var(--bg-sunken); border: 2px solid transparent; }
+.clock.running { border-color: var(--brand); background: var(--brand-soft); }
+.clock.on-break { border-color: var(--warning); background: var(--warning-soft); }
+.clock-time { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1.1; }

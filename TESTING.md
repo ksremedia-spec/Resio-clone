@@ -89,6 +89,22 @@ Client experience (new):
   the client, or record a choice on their behalf. Picking an option over the
   allowance drafts a change order for the difference automatically.
 
+Field and vendors (new):
+
+* Sign in as Jake (field crew). Field mode now has a time clock: pick a cost
+  code, **Clock in**, take a break, **Clock out**. The hours go to a supervisor
+  for approval. The **Time** page shows your week.
+* Sign in as Rosa (supervisor) → Time → **Previous week**: approve the pending
+  hours. Sign in as the owner → Time → **Payroll export** to get a CSV of
+  approved hours and mark them exported. Settings → Members lets you set each
+  person's hourly cost; approved hours become labour cost on the budget.
+* Projects → Smith Residence → Purchasing → **Bid requests**: request bids from
+  several vendors, key in a bid that arrived by email, and **Award** it to
+  create a draft purchase order.
+* Sign in as the subcontractor (orders@hillcountrycabinets.example). They see
+  only their purchase orders (acknowledge one), the bid request they were
+  invited to (submit a price), their scheduled tasks and shared documents.
+
 ## Starting over
 
 Stop the app (close the Terminal window), delete the folder `data/demo` inside
@@ -101,7 +117,8 @@ projects, schedule with dependencies, tasks, daily logs, documents, messaging,
 notifications, search, activity history, offline queue, cost catalog and cost
 codes, estimates, budgets and job costing, change orders, purchase orders and
 bills, invoices and payments, vendors, proposals, selections, the client portal
-with approvals and online payment.
+with approvals and online payment, time clock with approvals and payroll export,
+bid requests and the vendor portal.
 
-Not built yet: the vendor portal, time clock, the AI assistant, leads and reports.
+Not built yet: the AI assistant, leads, reports and automations.
 Those menu items show a "coming in Phase N" note.
