@@ -20,6 +20,10 @@ const MessagesHome = lazy(() => import('./features/messages/MessagesHome'));
 const DocumentsHome = lazy(() => import('./features/documents/DocumentsHome'));
 const Settings = lazy(() => import('./features/settings/Settings'));
 const FieldMode = lazy(() => import('./features/field/FieldMode'));
+const Estimating = lazy(() => import('./features/estimating/Estimating'));
+const BudgetOverview = lazy(() => import('./features/budget/BudgetOverview'));
+const InvoicesHome = lazy(() => import('./features/invoices/InvoicesHome'));
+const Vendors = lazy(() => import('./features/vendors/Vendors'));
 const ComingSoon = lazy(() => import('./features/ComingSoon'));
 
 function Centered({ children }: { children: ReactNode }) { return <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>{children}</div>; }
@@ -63,11 +67,13 @@ export function App() {
             <Route path="messages/:threadId" element={<MessagesHome />} />
             <Route path="documents" element={<DocumentsHome />} />
             <Route path="settings/*" element={<Settings />} />
-            <Route path="leads" element={<ComingSoon title="Leads" phase="Phase 3" />} />
-            <Route path="vendors" element={<ComingSoon title="Vendors" phase="Phase 3" />} />
-            <Route path="estimating" element={<ComingSoon title="Estimating" phase="Phase 3" />} />
-            <Route path="budget" element={<ComingSoon title="Budget" phase="Phase 3" />} />
-            <Route path="invoices" element={<ComingSoon title="Invoices" phase="Phase 3" />} />
+            <Route path="leads" element={<ComingSoon title="Leads" phase="Phase 7" />} />
+            <Route path="vendors" element={<Vendors />} />
+            <Route path="vendors/:vendorId" element={<Vendors />} />
+            <Route path="estimating" element={<Estimating />} />
+            <Route path="budget" element={<BudgetOverview />} />
+            <Route path="invoices" element={<InvoicesHome />} />
+            <Route path="invoices/:invoiceId" element={<InvoicesHome />} />
             <Route path="reports" element={<ComingSoon title="Reports" phase="Phase 7" />} />
             <Route path="assistant" element={<ComingSoon title="AI Assistant" phase="Phase 6" />} />
             <Route path="*" element={<Navigate to="/" replace />} />

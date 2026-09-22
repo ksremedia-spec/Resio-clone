@@ -62,7 +62,7 @@ export class S3Storage implements StorageProvider {
     if (this.client) return this.client;
     let mod: any;
     try {
-      mod = await import('@aws-sdk/client-s3' as string);
+      mod = await import(/* @vite-ignore */ '@aws-sdk/client-s3' as string);
     } catch {
       throw new Error('S3 storage requires the optional dependency @aws-sdk/client-s3');
     }

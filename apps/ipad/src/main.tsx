@@ -1,8 +1,7 @@
-import { StrictMode } from 'react';
+import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, HashRouter } from 'react-router';
-import { StandaloneBoot } from './standalone/Boot';
 import './ui/ui.css';
 import { App } from './App';
 import { SessionProvider } from './store/session';
@@ -19,6 +18,8 @@ if (import.meta.env.DEV) { void import('./store/db').then(({ db }) => { (window 
 // so the app works when hosted at any path (e.g. an artifact URL).
 export const STANDALONE = import.meta.env.VITE_STANDALONE === '1';
 const Router = STANDALONE ? HashRouter : BrowserRouter;
+// Loaded only in the standalone build so the regular client never pulls the in-page backend into its bundle.
+const StandaloneBoot = lazy(() => import('./standalone/Boot').then((m) => ({ default: m.StandaloneBoot })));
 const tree = (
   <QueryClientProvider client={queryClient}>
     <Router>
@@ -32,5 +33,5 @@ const tree = (
 );
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>{STANDALONE ? <StandaloneBoot>{tree}</StandaloneBoot> : tree}</StrictMode>,
+  <StrictMode>{STANDALONE ? <Suspense fallback={null}><StandaloneBoot>{tree}</StandaloneBoot></Suspense> : tree}</StrictMode>,
 );

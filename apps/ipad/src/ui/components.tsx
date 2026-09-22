@@ -50,6 +50,8 @@ const STATUS_TONES: Record<string, 'neutral' | 'brand' | 'success' | 'warning' |
   not_started: 'neutral', in_progress: 'brand', blocked: 'danger', cancelled: 'neutral',
   draft: 'neutral', sent: 'brand', viewed: 'info', approved: 'success', declined: 'danger', paid: 'success', overdue: 'danger', partially_paid: 'warning', void: 'neutral',
   pending: 'warning', released: 'brand', submitted: 'success', suspended: 'danger', low: 'neutral', medium: 'info', high: 'danger',
+  locked: 'success', awaiting_approval: 'warning', committed: 'brand', matched: 'success', closed: 'neutral', scheduled: 'info', pending_internal: 'warning',
+  under: 'success', on_track: 'brand', warning: 'warning', over: 'danger', open: 'brand', unmatched: 'warning',
 };
 export function StatusBadge({ status }: { status: string }) {
   return <Badge tone={STATUS_TONES[status] ?? 'neutral'}>{status.replace(/_/g, ' ')}</Badge>;

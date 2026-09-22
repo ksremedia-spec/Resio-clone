@@ -19,6 +19,10 @@ test('standalone: boots the in-page backend, signs in, creates and lists data', 
   await expect(page.getByTestId('task-row').filter({ hasText: 'Standalone punch item' })).toBeVisible();
   await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Daily Logs' }).click();
   await expect(page.getByTestId('daily-log-row').first()).toBeVisible();
+  await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Budget' }).click();
+  await expect(page.getByTestId('budget-line').first()).toBeVisible();
+  await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Invoices' }).click();
+  await expect(page.getByTestId('invoice-row').first()).toBeVisible();
   await page.reload();
   await expect(page.getByTestId('demo-owner').or(page.getByRole('heading', { name: /Good (morning|afternoon|evening)|Smith Residence/ }))).toBeVisible({ timeout: 60_000 });
 });

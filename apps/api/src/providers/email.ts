@@ -41,7 +41,7 @@ export class SmtpEmailProvider implements EmailProvider {
   async send(message: EmailMessage) {
     if (!this.transport) {
       let nodemailer: any;
-      try { nodemailer = await import('nodemailer' as string); } catch { throw new Error('SMTP email requires the optional dependency nodemailer'); }
+      try { nodemailer = await import(/* @vite-ignore */ 'nodemailer' as string); } catch { throw new Error('SMTP email requires the optional dependency nodemailer'); }
       this.transport = nodemailer.createTransport(this.url);
     }
     const info = await this.transport.sendMail({ from: this.from, to: message.to, subject: message.subject, text: message.text, html: message.html });

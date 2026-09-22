@@ -17,12 +17,22 @@ const sectionModules = {
   dailyLogs: () => import('../dailyLogs/ProjectDailyLogs'),
   documents: () => import('../documents/ProjectDocuments'),
   messages: () => import('../messages/ProjectMessages'),
+  estimate: () => import('../estimating/ProjectEstimate'),
+  budget: () => import('../budget/ProjectBudget'),
+  changeOrders: () => import('../changeOrders/ProjectChangeOrders'),
+  invoices: () => import('../invoices/ProjectInvoices'),
+  purchasing: () => import('../purchasing/ProjectPurchasing'),
 };
 const ProjectSchedule = lazy(sectionModules.schedule);
 const ProjectTasks = lazy(sectionModules.tasks);
 const ProjectDailyLogs = lazy(sectionModules.dailyLogs);
 const ProjectDocuments = lazy(sectionModules.documents);
 const ProjectMessages = lazy(sectionModules.messages);
+const ProjectEstimate = lazy(sectionModules.estimate);
+const ProjectBudget = lazy(sectionModules.budget);
+const ProjectChangeOrders = lazy(sectionModules.changeOrders);
+const ProjectInvoices = lazy(sectionModules.invoices);
+const ProjectPurchasing = lazy(sectionModules.purchasing);
 /** Warm every section chunk once a project opens so sections keep working if connectivity drops afterwards. */
 function prefetchSections() { for (const load of Object.values(sectionModules)) void load().catch(() => {}); }
 
@@ -57,6 +67,7 @@ export default function ProjectHub() {
     { to: 'change-orders', label: 'Change Orders', perm: 'change_orders.read' },
     { to: 'proposals', label: 'Proposals', perm: 'proposals.read' },
     { to: 'invoices', label: 'Invoices', perm: 'invoices.read' },
+    { to: 'purchasing', label: 'Purchasing', perm: 'purchasing.read' },
     { to: 'documents', label: 'Documents', perm: 'documents.read', count: project.counts.documents },
     { to: 'messages', label: 'Messages', perm: 'messages.read', count: project.counts.unreadMessages },
     { to: 'time', label: 'Time', perm: 'time.clock' },
@@ -101,12 +112,15 @@ export default function ProjectHub() {
           <Route path="messages/:threadId" element={<ProjectMessages project={project} />} />
           <Route path="activity" element={<ProjectActivity project={project} />} />
           <Route path="team" element={<ProjectTeam project={project} />} />
-          <Route path="estimate" element={<ComingSoonSection title="Estimate" phase="Phase 3" />} />
-          <Route path="budget" element={<ComingSoonSection title="Budget" phase="Phase 3" />} />
+          <Route path="estimate" element={<ProjectEstimate project={project} />} />
+          <Route path="budget" element={<ProjectBudget project={project} />} />
           <Route path="selections" element={<ComingSoonSection title="Selections" phase="Phase 4" />} />
-          <Route path="change-orders" element={<ComingSoonSection title="Change Orders" phase="Phase 3" />} />
+          <Route path="change-orders" element={<ProjectChangeOrders project={project} />} />
+          <Route path="change-orders/:coId" element={<ProjectChangeOrders project={project} />} />
           <Route path="proposals" element={<ComingSoonSection title="Proposals" phase="Phase 4" />} />
-          <Route path="invoices" element={<ComingSoonSection title="Invoices" phase="Phase 3" />} />
+          <Route path="invoices" element={<ProjectInvoices project={project} />} />
+          <Route path="invoices/:invoiceId" element={<ProjectInvoices project={project} />} />
+          <Route path="purchasing" element={<ProjectPurchasing project={project} />} />
           <Route path="time" element={<ComingSoonSection title="Time clock" phase="Phase 5" />} />
           <Route path="*" element={<Navigate to="" replace />} />
         </Routes>

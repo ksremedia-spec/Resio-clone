@@ -83,6 +83,95 @@ export async function seedDemo(services: Services, db: Db, log: (m: string) => v
     await services.messages.send(sup, thread.id, { body: 'Yes — we will have the garage cleared. Need the pot filler on site before then too.', mentions: [members.project_manager!], attachmentDocumentIds: [] });
     await services.messages.createThread(pm, { projectId: harborProject.id, kind: 'project', subject: 'Paint colour approval', clientVisible: true, vendorVisible: false, initialMessage: 'Board approved SW 7015 for the lobby.' });
     log('created documents and messages');
+
+    // ---- money: catalog, vendors, estimate → budget, change order, purchasing, invoicing ----
+    const codes = await services.catalog.listCostCodes(owner);
+    const code = (name: string) => codes.find((c) => c.name === name)?.id ?? null;
+    const items = [
+      { name: 'Demolition — kitchen (per room)', costCodeId: code('Demolition'), unit: 'ea', unitCostCents: { labor: 240_000, other: 45_000 }, tags: ['demo', 'kitchen'] },
+      { name: 'Shaker cabinets, painted', costCodeId: code('Cabinets & Millwork'), unit: 'lf', unitCostCents: { material: 42_000, labor: 9_500 }, tags: ['kitchen', 'cabinets'] },
+      { name: 'Quartz countertop, installed', costCodeId: code('Countertops'), unit: 'sf', unitCostCents: { material: 6_500, subcontract: 2_500 }, tags: ['kitchen'] },
+      { name: 'Plumbing rough-in — fixture', costCodeId: code('Plumbing'), unit: 'ea', unitCostCents: { subcontract: 65_000 }, tags: ['plumbing'] },
+      { name: 'Electrical — recessed light', costCodeId: code('Electrical'), unit: 'ea', unitCostCents: { subcontract: 18_500 }, tags: ['electrical'] },
+      { name: 'Tile floor, installed', costCodeId: code('Tile'), unit: 'sf', unitCostCents: { material: 900, subcontract: 1_400 }, tags: ['tile', 'bath'] },
+      { name: 'Appliance allowance', costCodeId: code('Appliances'), unit: 'ea', unitCostCents: { material: 1_200_000 }, isAllowance: true, tags: ['kitchen', 'allowance'] },
+    ];
+    for (const i of items) await services.catalog.createCatalogItem(owner, { description: '', markupBp: null, vendorId: null, isAllowance: false, sourceUrl: null, ...i });
+    const cabinetsVendor = await services.catalog.createVendor(owner, { name: 'Hill Country Cabinets', trade: 'Cabinetry', email: 'orders@hillcountrycabinets.example', phone: '512-555-0188', notes: 'Lead time 6 weeks. 50% deposit.' });
+    const plumber = await services.catalog.createVendor(owner, { name: 'Bluebonnet Plumbing', trade: 'Plumbing', email: 'dispatch@bluebonnetplumbing.example', phone: '512-555-0121', notes: '' });
+    await services.catalog.createVendor(owner, { name: 'Lone Star Electric', trade: 'Electrical', email: 'office@lonestarelectric.example', phone: '512-555-0166', notes: '' });
+    log('created cost catalog and vendors');
+
+    const estCtx = pm;
+    await services.estimates.update(estCtx, smithProject.id, { taxBp: 825 });
+    const sec = async (name: string) => (await services.estimates.createSection(estCtx, smithProject.id, { name, description: '', clientVisible: true })).sections.find((x) => x.name === name)!.id;
+    const demoSec = await sec('Demolition & prep');
+    const kitchenSec = await sec('Kitchen');
+    const bathSec = await sec('Primary bath');
+    const generalSec = await sec('General conditions');
+    const line = (sectionId: string, name: string, extra: Record<string, unknown>) => services.estimates.createLine(estCtx, smithProject.id, { sectionId, name, description: '', quantityThousandths: 1000, unit: 'ea', unitCostCents: {}, taxable: false, isAllowance: false, isOptional: false, included: true, notes: '', clientVisible: true, ...extra });
+    await line(demoSec, 'Demolition — kitchen', { costCodeId: code('Demolition'), unitCostCents: { labor: 240_000, other: 45_000 } });
+    await line(demoSec, 'Dumpsters (3)', { costCodeId: code('Temporary Facilities'), quantityThousandths: 3000, unitCostCents: { other: 62_000 } });
+    await line(kitchenSec, 'Shaker cabinets, painted', { costCodeId: code('Cabinets & Millwork'), quantityThousandths: 32_000, unit: 'lf', unitCostCents: { material: 42_000, labor: 9_500 }, taxable: true });
+    await line(kitchenSec, 'Quartz countertops', { costCodeId: code('Countertops'), quantityThousandths: 68_000, unit: 'sf', unitCostCents: { material: 6_500, subcontract: 2_500 }, taxable: true });
+    await line(kitchenSec, 'Plumbing rough-in and trim (sink, DW, pot filler)', { costCodeId: code('Plumbing'), quantityThousandths: 3000, unitCostCents: { subcontract: 65_000 } });
+    await line(kitchenSec, 'Recessed lighting', { costCodeId: code('Electrical'), quantityThousandths: 12_000, unitCostCents: { subcontract: 18_500 } });
+    await line(kitchenSec, 'Appliance allowance', { costCodeId: code('Appliances'), unitCostCents: { material: 1_200_000 }, isAllowance: true, taxable: true });
+    await line(bathSec, 'Framing for addition', { costCodeId: code('Rough Carpentry / Framing'), unitCostCents: { labor: 1_450_000, material: 980_000 } });
+    await line(bathSec, 'Roofing over addition', { costCodeId: code('Roofing'), unitCostCents: { subcontract: 1_120_000 } });
+    await line(bathSec, 'Tile floor and shower', { costCodeId: code('Tile'), quantityThousandths: 210_000, unit: 'sf', unitCostCents: { material: 900, subcontract: 1_400 }, taxable: true });
+    await line(bathSec, 'Plumbing fixtures allowance', { costCodeId: code('Plumbing'), unitCostCents: { material: 650_000 }, isAllowance: true, taxable: true });
+    await line(generalSec, 'Permits & inspections', { costCodeId: code('Permits & Fees'), unitCostCents: { other: 380_000 } });
+    await line(generalSec, 'Supervision (16 weeks)', { costCodeId: code('Supervision'), quantityThousandths: 16_000, unit: 'wk', unitCostCents: { labor: 95_000 } });
+    await line(generalSec, 'Contingency', { costCodeId: code('Contingency'), unitCostCents: { other: 500_000 } });
+    const locked = await services.estimates.lock(estCtx, smithProject.id, { applyContractValue: true });
+    log(`estimate locked at ${(locked.totals.sellCents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}; budget created`);
+    // Baker: an estimate in progress, not yet locked.
+    const bakerSec = (await services.estimates.createSection(estCtx, bakerProject.id, { name: 'Family room addition', description: '', clientVisible: true })).sections[0]!.id;
+    await services.estimates.createLine(estCtx, bakerProject.id, { sectionId: bakerSec, name: 'Foundation and slab', description: '', quantityThousandths: 1000, unit: 'ea', unitCostCents: { subcontract: 1_850_000 }, taxable: false, isAllowance: false, isOptional: false, included: true, notes: '', clientVisible: true, costCodeId: code('Concrete') });
+    await services.estimates.createLine(estCtx, bakerProject.id, { sectionId: bakerSec, name: 'Framing', description: '', quantityThousandths: 1000, unit: 'ea', unitCostCents: { labor: 1_400_000, material: 1_100_000 }, taxable: false, isAllowance: false, isOptional: false, included: true, notes: '', clientVisible: true, costCodeId: code('Rough Carpentry / Framing') });
+
+    const budget = await services.budget.get(owner, smithProject.id);
+    const bl = (name: string) => budget.lines.find((l) => l.name === name)!.id;
+    const co1 = await services.changeOrders.create(pm, smithProject.id, { title: 'Add pantry cabinets and outlet', description: 'Client requested a 4 lf pantry run beside the refrigerator with a dedicated outlet.', reason: 'client_request', scheduleImpactDays: 2, lines: [
+      { name: 'Pantry cabinets', budgetLineId: bl('Shaker cabinets, painted'), costCodeId: code('Cabinets & Millwork'), quantityThousandths: 4000, unit: 'lf', unitCostCents: { material: 42_000, labor: 9_500 }, taxable: true, description: '' },
+      { name: 'Dedicated 20A outlet', costCodeId: code('Electrical'), quantityThousandths: 1000, unit: 'ea', unitCostCents: { subcontract: 32_000 }, taxable: false, description: '' },
+    ] });
+    await services.changeOrders.send(pm, co1.id, { message: 'Please review and approve by Friday.' });
+    await services.changeOrders.decide(pm, co1.id, { decision: 'approved', decidedByName: 'Jane Smith', note: 'Approved by email 9/12.' });
+    const co2 = await services.changeOrders.create(pm, smithProject.id, { title: 'Upgrade to slab-front cabinet doors', description: 'Swap shaker doors for flat slab fronts.', reason: 'design_change', scheduleImpactDays: 0, lines: [{ name: 'Door upgrade', budgetLineId: bl('Shaker cabinets, painted'), costCodeId: code('Cabinets & Millwork'), quantityThousandths: 32_000, unit: 'lf', unitCostCents: { material: 6_000 }, taxable: true, description: '' }] });
+    await services.changeOrders.send(pm, co2.id, {});
+    log('created change orders (one approved, one awaiting the client)');
+
+    const po = await services.procurement.createPurchaseOrder(pm, smithProject.id, { vendorId: cabinetsVendor.id, title: 'Kitchen cabinets', notes: 'Deliver to garage. Call Rosa 30 min ahead.', lines: [
+      { budgetLineId: bl('Shaker cabinets, painted'), costCodeId: code('Cabinets & Millwork'), description: 'Shaker cabinets, painted — 32 lf', quantityThousandths: 32_000, unit: 'lf', unitCostCents: 42_000 },
+      { budgetLineId: bl('Shaker cabinets, painted'), costCodeId: code('Cabinets & Millwork'), description: 'Delivery', quantityThousandths: 1000, unit: 'ea', unitCostCents: 35_000 },
+    ] });
+    await services.procurement.transitionPurchaseOrder(owner, po.id, 'approve');
+    await services.procurement.transitionPurchaseOrder(pm, po.id, 'issue');
+    const deposit = await services.procurement.createBill(pm, { purchaseOrderId: po.id, vendorReference: 'HCC-4471', billDate: '2026-09-05', dueDate: '2026-09-20', taxCents: 0, notes: '50% deposit', lines: [{ purchaseOrderLineId: po.lines[0]!.id, budgetLineId: bl('Shaker cabinets, painted'), description: 'Cabinet deposit (50%)', amountCents: 672_000 }] });
+    await services.procurement.transitionBill(owner, deposit.id, 'approve');
+    await services.procurement.recordBillPayment(owner, deposit.id, { amountCents: 672_000, method: 'ach', reference: 'ACH 20918', notes: '' });
+    const plumbPo = await services.procurement.createPurchaseOrder(pm, smithProject.id, { vendorId: plumber.id, title: 'Kitchen plumbing rough-in', notes: '', lines: [{ budgetLineId: bl('Plumbing rough-in and trim (sink, DW, pot filler)'), costCodeId: code('Plumbing'), description: 'Rough-in, 3 fixtures', quantityThousandths: 3000, unit: 'ea', unitCostCents: 65_000 }] });
+    await services.procurement.transitionPurchaseOrder(owner, plumbPo.id, 'approve');
+    await services.procurement.createBill(pm, { projectId: smithProject.id, vendorId: plumber.id, vendorReference: 'BP-1188', billDate: '2026-09-18', dueDate: '2026-10-18', taxCents: 0, notes: 'Not on a PO — check before approving.', lines: [{ budgetLineId: bl('Plumbing rough-in and trim (sink, DW, pot filler)'), description: 'Extra trip for pot filler line', amountCents: 28_500 }] });
+    log('created purchase orders and bills');
+
+    const draw1 = await services.invoices.create(owner, smithProject.id, { title: 'Draw 1 — mobilization and demolition', billingType: 'progress', issueDate: '2026-09-02', dueDate: '2026-09-16', taxBp: 825, retainageBp: 0, notes: 'Thank you for choosing Ridgeline.', terms: 'Due on receipt. 1.5% per month on late balances.', lines: [
+      { description: 'Demolition — complete', budgetLineId: bl('Demolition — kitchen'), percentBp: 10_000, taxable: false },
+      { description: 'Permits & inspections', budgetLineId: bl('Permits & inspections'), percentBp: 10_000, taxable: false },
+      { description: 'Mobilization', quantityThousandths: 1000, unitPriceCents: 250_000, taxable: false },
+    ] });
+    await services.invoices.transition(owner, draw1.id, 'send');
+    await services.invoices.recordPayment(owner, draw1.id, { amountCents: draw1.totalCents, method: 'check', reference: '2291', notes: '' });
+    const draw2 = await services.invoices.create(owner, smithProject.id, { title: 'Draw 2 — cabinets ordered, rough-ins', billingType: 'progress', issueDate: '2026-09-15', dueDate: '2026-09-29', taxBp: 825, retainageBp: 0, notes: '', terms: '', lines: [
+      { description: 'Cabinets — 50% (ordered)', budgetLineId: bl('Shaker cabinets, painted'), percentBp: 5_000, taxable: true },
+      { description: 'Plumbing rough-in — 60%', budgetLineId: bl('Plumbing rough-in and trim (sink, DW, pot filler)'), percentBp: 6_000, taxable: false },
+    ], changeOrderIds: [co1.id] });
+    await services.invoices.transition(owner, draw2.id, 'send');
+    await services.invoices.recordPayment(owner, draw2.id, { amountCents: 500_000, method: 'ach', reference: 'ACH 55120', notes: 'Partial' });
+    await services.invoices.create(owner, smithProject.id, { title: 'Draw 3 — framing and roofing', billingType: 'progress', issueDate: '2026-10-01', taxBp: 825, retainageBp: 0, notes: '', terms: '', lines: [{ description: 'Framing — 50%', budgetLineId: bl('Framing for addition'), percentBp: 5_000, taxable: false }] });
+    log('created invoices and payments');
     log('seed complete');
     return true;
 }
