@@ -50,7 +50,7 @@ export function createServices(deps: Deps) {
   const changeOrders = new ChangeOrderService(deps, activity, notifications, documents);
   const invoices = new InvoiceService(deps, activity, notifications, documents);
   const proposals = new ProposalService(deps, activity, notifications, documents, estimates);
-  const selections = new SelectionService(deps, activity, notifications, changeOrders);
+  const selections = new SelectionService(deps, activity, notifications, changeOrders, documents);
   const portal = new PortalService(deps, projects);
   const time = new TimeService(deps, activity, notifications);
   const bids = new BidService(deps, activity, notifications, documents, procurement);

@@ -241,6 +241,11 @@ export function buildRoutes(s: Services, config: { NODE_ENV: string }): Route[] 
   add('GET', '/v1/selections', async (r) => s.selections.list(requireCtx(r), q(c.listSelectionsQuery, r)));
   add('GET', '/v1/projects/:id/selections', async (r) => s.selections.list(requireCtx(r), { ...q(c.listSelectionsQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
   add('POST', '/v1/projects/:id/selections', async (r) => s.selections.create(requireCtx(r), r.params.id!, b(c.createSelectionBody, r)), 201);
+  add('GET', '/v1/selections/template', async (r) => s.selections.template(requireCtx(r)));
+  add('POST', '/v1/projects/:id/selections/apply-template', async (r) => s.selections.applyTemplate(requireCtx(r), r.params.id!, r.body ? b(c.applySelectionTemplateBody, r) : { release: false }));
+  add('GET', '/v1/projects/:id/selections/sheet', async (r) => s.selections.sheet(requireCtx(r), r.params.id!));
+  add('POST', '/v1/projects/:id/selections/publish', async (r) => s.selections.publish(requireCtx(r), r.params.id!, r.body ? b(c.publishSelectionSheetBody, r) : { vendorVisible: true }), 201);
+  add('POST', '/v1/projects/:id/selections/sign', async (r) => s.selections.sign(requireCtx(r), r.params.id!, b(c.signSelectionSheetBody, r)));
   add('GET', '/v1/selections/:id', async (r) => s.selections.get(requireCtx(r), r.params.id!));
   add('PATCH', '/v1/selections/:id', async (r) => s.selections.update(requireCtx(r), r.params.id!, b(c.updateSelectionBody, r)));
   add('POST', '/v1/selections/:id/release', async (r) => s.selections.release(requireCtx(r), r.params.id!));

@@ -6,6 +6,7 @@
  */
 import init0 from '../../../api/drizzle/0000_init.sql?raw';
 import init1 from '../../../api/drizzle/0001_security.sql?raw';
+import init2 from '../../../api/drizzle/0002_selection_sheet.sql?raw';
 import { drizzleFromPglite, migratePglite } from '../../../api/src/db/pglite-shared';
 import { loadConfig } from '../../../api/src/config';
 import { createServices } from '../../../api/src/services/index';
@@ -23,7 +24,7 @@ export async function bootStandalone(onStage: (stage: BootStage, detail?: string
   const client = new PGlite('idb://buildline-demo');
   await client.waitReady;
   onStage('database', 'Preparing tables');
-  await migratePglite(client, [{ name: '0000_init.sql', body: init0 }, { name: '0001_security.sql', body: init1 }]);
+  await migratePglite(client, [{ name: '0000_init.sql', body: init0 }, { name: '0001_security.sql', body: init1 }, { name: '0002_selection_sheet.sql', body: init2 }]);
   const db = drizzleFromPglite(client);
   onStage('services');
   // An Anthropic key pasted in Settings → AI assistant lives only in this browser and is sent straight to Anthropic.

@@ -317,3 +317,42 @@ p { margin: 0; }
 .card.flash { animation: flash 1.2s ease-out; }
 @keyframes flash { 0% { box-shadow: 0 0 0 3px var(--brand); } 100% { box-shadow: 0 0 0 0 transparent; } }
 @media (prefers-reduced-motion: reduce) { .card.flash { animation: none; box-shadow: 0 0 0 3px var(--brand); } }
+
+/* ---- selections sheet (screen + print) ---- */
+.selections-sheet { background: var(--bg-elev); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--sp-6); max-width: 960px; font-variant-numeric: tabular-nums; }
+.selections-sheet .label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-3); font-weight: 600; margin-right: 8px; }
+.selections-sheet .eyebrow { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-3); font-weight: 600; }
+.sheet-head { display: flex; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; border-bottom: 2px solid var(--fg); padding-bottom: var(--sp-3); margin-bottom: var(--sp-4); }
+.sheet-head h1 { font-size: var(--fs-2xl); letter-spacing: -0.01em; margin: 2px 0; }
+.sheet-meta { display: grid; gap: 4px; align-content: start; text-align: right; }
+.sheet-section { margin-top: var(--sp-5); break-inside: avoid; }
+.sheet-section h2 { font-size: var(--fs-md); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-bottom: var(--sp-2); }
+.sheet-note { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); }
+.sheet-item { display: grid; grid-template-columns: 170px 1fr 150px; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: 1px dotted var(--line); cursor: pointer; break-inside: avoid; }
+.sheet-item:hover { background: var(--bg-hover); }
+.sheet-item-status { text-align: right; font-size: var(--fs-xs); }
+.ticks { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.ticks.areas { margin-top: 4px; }
+.tick-item { display: inline-flex; align-items: center; gap: 4px; color: var(--fg-2); }
+.tick-item.chosen { color: var(--fg); font-weight: 650; }
+.tick { font-size: 16px; line-height: 1; }
+.tick.on { color: var(--brand); }
+.sheet-default { font-size: var(--fs-sm); color: var(--fg-2); margin-top: 4px; }
+.sheet-fields { border-collapse: collapse; margin-top: 4px; font-size: var(--fs-sm); }
+.sheet-fields th { text-align: left; font-weight: 600; color: var(--fg-3); padding: 2px 14px 2px 0; white-space: nowrap; vertical-align: top; }
+.sheet-fields td { padding: 2px 0; min-width: 160px; border-bottom: 1px solid var(--line); }
+.sheet-sign { margin-top: var(--sp-6); border-top: 2px solid var(--fg); padding-top: var(--sp-4); }
+.sheet-sign .signature { font-family: 'Snell Roundhand', 'Brush Script MT', cursive; font-size: 30px; line-height: 1.2; }
+.sheet-sign .signed + .signed { margin-top: var(--sp-3); }
+.blank-signature { display: grid; grid-template-columns: 2fr 1fr; gap: var(--sp-5); }
+.blank-signature > div { display: flex; align-items: flex-end; gap: 8px; }
+.blank-signature .line { flex: 1; border-bottom: 1px solid var(--fg); height: 28px; }
+@media (max-width: 700px) { .sheet-item { grid-template-columns: 1fr; } .sheet-item-status { text-align: left; } .sheet-meta { text-align: left; } }
+@media print {
+  .sidebar, .sidebar-overlay, .toolbar, .project-header, .banner, .toast-host, .no-print, .section-bar { display: none !important; }
+  .shell, .content, .page, .page-inner { display: block !important; height: auto !important; overflow: visible !important; padding: 0 !important; max-width: none !important; }
+  .selections-sheet { border: 0; padding: 0; max-width: none; color: #000; background: #fff; }
+  .sheet-item { cursor: default; }
+  .sheet-item-status .badge { border: 1px solid #000; background: #fff; color: #000; }
+  .tick.on { color: #000; }
+}

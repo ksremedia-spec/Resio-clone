@@ -45,6 +45,7 @@ export default function PortalHome() {
           {p.unpaidCents > 0 && <div className="row-between"><dt className="muted">Balance due</dt><dd style={{ margin: 0 }} className="mono">{money(p.unpaidCents)}</dd></div>}
           <div className="row-between"><dt className="muted">Last update</dt><dd style={{ margin: 0 }}>{p.lastUpdateAt ? timeAgo(p.lastUpdateAt) : '—'}</dd></div>
         </dl>
+        <SheetProgress projectId={p.id} />
         <div className="row wrap mt-4">
           <Button variant="primary" onClick={() => navigate(`/projects/${p.id}`)} data-testid="portal-open-project">Open project</Button>
           {p.pendingApprovals > 0 && <Badge tone="warning">{p.pendingApprovals} to decide</Badge>}
@@ -53,4 +54,16 @@ export default function PortalHome() {
       </Card>)}</div>}
     </div></div>
   </>;
+}
+
+/** "Your selections sheet: 9 of 44 decided" with a shortcut, shown only when the builder has released a sheet. */
+function SheetProgress({ projectId }: { projectId: string }) {
+  const navigate = useNavigate();
+  const { data } = useResource<contracts.SelectionSheet>(`/v1/projects/${projectId}/selections/sheet`);
+  if (!data || data.counts.total === 0) return null;
+  const signed = data.signoffs.length > 0;
+  return <div className="card mt-4" style={{ background: 'var(--bg-sunken)' }} data-testid="portal-sheet">
+    <div className="row-between wrap"><div><strong>Your selections sheet</strong><div className="subtle">{data.counts.decided} of {data.counts.total} decided{signed ? ` · signed ${dateShort(data.signoffs[0]!.signedAt)}` : data.counts.decided > 0 ? ' · ready for your signature' : ''}</div></div><Button size="sm" onClick={() => navigate(`/projects/${projectId}/selections/sheet`)}>Open sheet</Button></div>
+    <Progress value={data.counts.total ? (data.counts.decided / data.counts.total) * 100 : 0} />
+  </div>;
 }

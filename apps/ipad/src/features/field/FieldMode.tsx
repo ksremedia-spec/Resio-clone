@@ -28,6 +28,7 @@ export default function FieldMode() {
     { icon: 'camera', label: 'Take photo', to: `/projects/${chosen}/documents?capture=1`, perm: 'documents.write' },
     { icon: 'schedule', label: "Today's schedule", to: `/projects/${chosen}/schedule`, perm: 'schedule.read' },
     { icon: 'documents', label: 'Plans & docs', to: `/projects/${chosen}/documents`, perm: 'documents.read' },
+    { icon: 'layout', label: 'Client selections', to: `/projects/${chosen}/selections/sheet`, perm: 'selections.read' },
     { icon: 'messages', label: 'Messages', to: `/projects/${chosen}/messages`, perm: 'messages.read' },
     { icon: 'clock', label: 'Time clock', to: `/projects/${chosen}/time`, perm: 'time.clock' },
   ] as Array<{ icon: IconName; label: string; to: string; primary?: boolean; perm?: string }>).filter((t) => !t.perm || session.has(t.perm));

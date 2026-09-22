@@ -1,6 +1,7 @@
+import { sql } from 'drizzle-orm';
 import { boolean, date, index, integer, jsonb, pgTable, text, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { archivable, bp, money, tenantColumns, ts } from './_common.js';
-import { users } from './identity.js';
+import { organizations, users } from './identity.js';
 import { projects } from './project.js';
 import { clients, contacts, vendors } from './crm.js';
 
@@ -323,7 +324,35 @@ export const selections = pgTable('selections', {
   decisionApprovalId: uuid('decision_approval_id'),
   changeOrderId: uuid('change_order_id').references(() => changeOrders.id, { onDelete: 'set null' }),
   sortOrder: integer('sort_order').notNull().default(0),
-}, (t) => [index('selections_project_idx').on(t.projectId, t.sortOrder)]);
+  // Standard selections sheet
+  section: text('section'),
+  templateKey: text('template_key'),
+  areas: jsonb('areas').$type<string[]>().notNull().default([]),
+  chosenAreas: jsonb('chosen_areas').$type<string[]>().notNull().default([]),
+  fields: jsonb('fields').$type<string[]>().notNull().default([]),
+  answers: jsonb('answers').$type<Record<string, string>>().notNull().default({}),
+  matchExisting: boolean('match_existing').notNull().default(false),
+  comment: text('comment').notNull().default(''),
+  defaultSpec: text('default_spec').notNull().default(''),
+  byAllowance: boolean('by_allowance').notNull().default(false),
+}, (t) => [index('selections_project_idx').on(t.projectId, t.sortOrder), index('selections_project_template_idx').on(t.projectId, t.templateKey)]);
+
+/** A client's signature on the printed selections sheet (append-only). */
+export const selectionSignoffs = pgTable('selection_signoffs', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  signerName: text('signer_name').notNull(),
+  signatureText: text('signature_text'),
+  note: text('note').notNull().default(''),
+  signedByUserId: uuid('signed_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  signedByContactId: uuid('signed_by_contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  signedAt: ts('signed_at').notNull().defaultNow(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  decidedCount: integer('decided_count').notNull().default(0),
+  snapshot: jsonb('snapshot').notNull().default({}),
+}, (t) => [index('selection_signoffs_project_idx').on(t.projectId, t.signedAt)]);
 
 export const selectionOptions = pgTable('selection_options', {
   ...tenantColumns(),

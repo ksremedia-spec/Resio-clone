@@ -140,3 +140,95 @@ describe('client payments', () => {
     expect((await api(app, estimator).post(`/v1/invoices/${draft.id}/pay`, { method: 'card' })).status).toBe(403);
   });
 });
+
+describe('standard selections sheet', () => {
+  it('applies the standard checklist once, records ticks and choices, prints as a sheet, and takes the client signature', async () => {
+    const c = api(app, owner);
+    const { project, homeowner } = await projectWithClient('Sheet House');
+    const h = api(app, homeowner);
+    const template = await c.get('/v1/selections/template');
+    expect(template.status).toBe(200);
+    expect(template.body.templates.map((t: any) => t.key)).toEqual(['checklist', 'schematic']);
+    const checklist = template.body.templates[0];
+    expect(checklist.sections.map((s: any) => s.key)).toEqual(expect.arrayContaining(['flooring', 'stairs', 'doors', 'cabinetry', 'plumbing', 'trim', 'fireplace', 'walls', 'electrical', 'exterior', 'windows', 'mechanical']));
+    const total = checklist.sections.reduce((n: number, s: any) => n + s.items.length, 0);
+
+    // Apply everything, released to the client. Re-applying adds nothing.
+    const applied = await c.post(`/v1/projects/${project.id}/selections/apply-template`, { release: true });
+    expect(applied.status).toBe(200);
+    expect(applied.body.created).toBe(total);
+    const again = await c.post(`/v1/projects/${project.id}/selections/apply-template`, { release: true });
+    expect(again.body.created).toBe(0);
+    expect(again.body.skipped).toBe(total);
+    const wood = applied.body.items.find((s: any) => s.templateKey === 'flooring.wood');
+    expect(wood.status).toBe('released');
+    expect(wood.section).toBe('flooring');
+    expect(wood.options.map((o: any) => o.name)).toContain('Red Oak');
+    expect(wood.options.find((o: any) => o.name === 'Red Oak').isRecommended).toBe(true);
+    expect(wood.defaultSpec).toMatch(/Red Oak/);
+    const hardware = applied.body.items.find((s: any) => s.templateKey === 'doors.hardware');
+    expect(hardware.options).toHaveLength(0);
+    expect(hardware.areas).toEqual(['Door Knobs', 'Hinges', 'Accessories']);
+
+    // The client sees the sheet and fills it in: a single choice, a choice with areas, and a tick-all-that-apply item.
+    const sheet = await h.get(`/v1/projects/${project.id}/selections/sheet`);
+    expect(sheet.status).toBe(200);
+    expect(sheet.body.counts).toMatchObject({ total, decided: 0, released: total });
+    expect(sheet.body.sections[0].label).toBe('Flooring');
+    const oak = wood.options.find((o: any) => o.name === 'White Oak');
+    expect((await h.post(`/v1/selections/${wood.id}/decide`, { optionId: oak.id })).body.selectedOptionId).toBe(oak.id);
+    const tile = applied.body.items.find((s: any) => s.templateKey === 'flooring.tile');
+    const ceramic = tile.options.find((o: any) => o.name === 'Ceramic');
+    const tiled = await h.post(`/v1/selections/${tile.id}/decide`, { optionId: ceramic.id, chosenAreas: ['Laundry', 'Master Bath', 'Not a real area'] });
+    expect(tiled.body.chosenAreas).toEqual(['Laundry', 'Master Bath']);
+    expect(tiled.body.decidedByName).toBe('Pat Portal');
+    expect(tiled.body.changeOrderId).toBeNull(); // unpriced choices never draft change orders
+    expect((await h.post(`/v1/selections/${hardware.id}/decide`, {})).status).toBe(400);
+    expect((await h.post(`/v1/selections/${hardware.id}/decide`, { chosenAreas: ['Door Knobs'] })).body.status).toBe('decided');
+    // Unpriced sheet items can be revised until the sheet is signed.
+    const maple = wood.options.find((o: any) => o.name === 'Maple');
+    expect((await h.post(`/v1/selections/${wood.id}/decide`, { optionId: maple.id })).body.selectedOptionId).toBe(maple.id);
+
+    // The written-in list: fill-in answers, "match existing", and a comment; both lists share one sheet.
+    const sch = await c.post(`/v1/projects/${project.id}/selections/apply-template`, { templateKey: 'schematic', release: true });
+    expect(sch.body.created).toBeGreaterThan(20);
+    const roofing = sch.body.items.find((s: any) => s.templateKey === 'sch.roofing');
+    expect(roofing.fields).toEqual(['Shingle color']);
+    const asphalt = roofing.options.find((o: any) => o.name === 'Asphalt');
+    const roofed = await h.post(`/v1/selections/${roofing.id}/decide`, { optionId: asphalt.id, answers: { 'Shingle color': 'Weathered Wood', Ignored: '  ' }, note: 'Match the garage' });
+    expect(roofed.body.answers).toEqual({ 'Shingle color': 'Weathered Wood' });
+    expect(roofed.body.comment).toBe('Match the garage');
+    const paint = sch.body.items.find((s: any) => s.templateKey === 'sch.paint');
+    expect((await h.post(`/v1/selections/${paint.id}/decide`, { matchExisting: true })).body.matchExisting).toBe(true);
+    const merged = await h.get(`/v1/projects/${project.id}/selections/sheet`);
+    expect(merged.body.sections.map((x: any) => x.key)).toEqual(expect.arrayContaining(['flooring', 'sch_exterior', 'sch_interior']));
+    expect(merged.body.counts.decided).toBe(5);
+
+    // Signing snapshots the sheet as it stands; the record is append-only and shows on the sheet.
+    const signed = await h.post(`/v1/projects/${project.id}/selections/sign`, { signerName: 'ignored for portal users', signatureText: 'Pat Portal' });
+    expect(signed.status).toBe(200);
+    expect(signed.body.signoffs).toHaveLength(1);
+    expect(signed.body.signoffs[0]).toMatchObject({ signerName: 'Pat Portal', decidedCount: 5, byClient: true });
+    expect((await h.post(`/v1/selections/${wood.id}/decide`, { optionId: oak.id })).status).toBe(409); // signed: frozen
+    const teamView = await c.get(`/v1/projects/${project.id}/selections/sheet`);
+    expect(teamView.body.counts.decided).toBe(5);
+    expect(teamView.body.project.clientName).toBeTruthy();
+    const activity = await c.get(`/v1/projects/${project.id}/activity`);
+    expect(activity.body.items.some((a: any) => a.summary.includes('signed the selections sheet'))).toBe(true);
+    // Publishing saves the sheet to Documents → Specifications where the crew and subcontractors can read it.
+    const published = await c.post(`/v1/projects/${project.id}/selections/publish`, { vendorVisible: true });
+    expect(published.status).toBe(201);
+    expect(published.body.contentType).toBe('text/html');
+    expect(published.body.vendorVisible).toBe(true);
+    expect(published.body.name).toContain('5 of');
+    const crew = await inviteMember(app, owner, 'field_crew', { projectIds: [project.id] });
+    const crewSheet = await api(app, crew).get(`/v1/projects/${project.id}/selections/sheet`);
+    expect(crewSheet.status).toBe(200);
+    expect(crewSheet.body.counts.decided).toBe(5);
+    expect((await api(app, crew).post(`/v1/projects/${project.id}/selections/sign`, { signerName: 'Nope' })).status).toBe(403);
+    // Nothing to sign on an empty project.
+    const empty = await createProject(app, owner, { name: 'Empty' });
+    expect((await c.post(`/v1/projects/${empty.id}/selections/sign`, { signerName: 'Olivia' })).status).toBe(409);
+    expect((await c.post(`/v1/projects/${empty.id}/selections/publish`, {})).status).toBe(409);
+  });
+});

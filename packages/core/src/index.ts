@@ -5,3 +5,4 @@ export * as budgetCalc from './calc/budget.js';
 export * as scheduleCalc from './calc/schedule.js';
 export * as contracts from './contracts/index.js';
 export { formatActivity } from './activity.js';
+export * from './selectionsTemplate.js';

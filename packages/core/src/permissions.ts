@@ -142,7 +142,7 @@ export const SYSTEM_ROLES: readonly RoleDefinition[] = [
     external: false,
     defaultMode: 'field',
     permissions: [
-      ...R('vendors', 'projects', 'schedule', 'tasks', 'documents'),
+      ...R('vendors', 'projects', 'schedule', 'tasks', 'documents', 'selections'),
       'tasks.write', 'daily_logs.read', 'daily_logs.write', 'messages.read', 'messages.write', 'time.clock', 'ai.use',
     ],
   },
@@ -153,7 +153,7 @@ export const SYSTEM_ROLES: readonly RoleDefinition[] = [
     restrictToAssignedProjects: true,
     external: true,
     defaultMode: 'portal',
-    permissions: ['projects.read', 'schedule.read', 'tasks.read', 'tasks.write', 'documents.read', 'messages.read', 'messages.write', 'purchasing.read'],
+    permissions: ['projects.read', 'schedule.read', 'tasks.read', 'tasks.write', 'documents.read', 'messages.read', 'messages.write', 'purchasing.read', 'selections.read'],
   },
   {
     key: 'client',

@@ -141,6 +141,28 @@ Leads, reports, automations and offline (new):
   changed.
 * Ask the assistant "How is the pipeline?" or "Who owes us money?".
 
+Client selections sheet (new):
+
+* Projects → Baker Addition → **Selections**: the standard sheet is on this
+  project. Tap **Open sheet** to see the whole thing laid out like the paper
+  form: tick boxes for choices, tick-all-that-apply items, written-in answers
+  (paint colours, manufacturers), the builder's default for each item, and the
+  client signature block at the bottom.
+* Tap any item on the sheet to make or change the choice. Written-in items
+  have fields to fill; renovations can tick **Match existing**; every item
+  takes a comment.
+* **Add standard sheet** puts either list on any project: the tick-box
+  *Interior selections checklist* or the written-in *Residential selection
+  list* used for pricing. Items already on the project are skipped.
+* **Record client signature** (or, for the homeowner in the portal, **Sign the
+  sheet**) freezes the sheet as it stands. **Publish to documents** saves a
+  copy into Documents → Specifications where the crew, the client and
+  subcontractors can read the finished picks. **Print / PDF** prints it.
+* Sign in as Jane (homeowner) after adding the checklist to Smith Residence:
+  her home page shows "Your selections sheet" with progress; she can tick her
+  choices and sign. Sign in as Jake (field crew): Field mode has a **Client
+  selections** tile that opens the sheet read-only.
+
 ## Starting over
 
 Stop the app (close the Terminal window), delete the folder `data/demo` inside
@@ -155,8 +177,8 @@ codes, estimates, budgets and job costing, change orders, purchase orders and
 bills, invoices and payments, vendors, proposals, selections, the client portal
 with approvals and online payment, time clock with approvals and payroll export,
 bid requests and the vendor portal, the AI assistant with confirm-before-acting,
-leads and the sales pipeline, reports with CSV export, automations, and the
-offline download.
+leads and the sales pipeline, reports with CSV export, automations, the
+offline download, and the client selections sheets (checklist and written-in list).
 
 Everything in the original plan is built. What is deliberately simple in this
 version: the demo payment provider stands in for Stripe, email goes to a log

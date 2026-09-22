@@ -38,6 +38,7 @@ const ProjectInvoices = lazy(sectionModules.invoices);
 const ProjectPurchasing = lazy(sectionModules.purchasing);
 const ProjectProposals = lazy(sectionModules.proposals);
 const ProjectSelections = lazy(sectionModules.selections);
+const SelectionsSheet = lazy(() => import('../selections/SelectionsSheet'));
 const ProjectTime = lazy(sectionModules.time);
 /** Warm every section chunk once a project opens so sections keep working if connectivity drops afterwards. */
 function prefetchSections() { for (const load of Object.values(sectionModules)) void load().catch(() => {}); }
@@ -121,6 +122,7 @@ export default function ProjectHub() {
           <Route path="estimate" element={<ProjectEstimate project={project} />} />
           <Route path="budget" element={<ProjectBudget project={project} />} />
           <Route path="selections" element={<ProjectSelections project={project} />} />
+          <Route path="selections/sheet" element={<SelectionsSheet project={project} />} />
           <Route path="selections/:selectionId" element={<ProjectSelections project={project} />} />
           <Route path="change-orders" element={<ProjectChangeOrders project={project} />} />
           <Route path="change-orders/:coId" element={<ProjectChangeOrders project={project} />} />

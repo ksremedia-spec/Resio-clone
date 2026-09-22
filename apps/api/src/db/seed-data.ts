@@ -192,7 +192,25 @@ export async function seedDemo(services: Services, db: Db, log: (m: string) => v
     const clientRole = roles.find((r) => r.key === 'client')!;
     const portalInvite = await services.organizations.invite(owner, { email: 'jane@example.com', roleId: clientRole.id, firstName: 'Jane', lastName: 'Smith', projectIds: [smithProject.id] });
     await services.organizations.acceptInvitation({ token: new URL(portalInvite.acceptUrl!).searchParams.get('token')!, password: DEMO_OWNER.password, firstName: 'Jane', lastName: 'Smith' }, null);
-    log('created proposal, selections and the homeowner portal account (jane@example.com)');
+    // The standard selections sheet on the Baker addition, partly filled in from the kickoff meeting.
+    const std = await services.selections.applyTemplate(pm, bakerProject.id, { templateKey: 'checklist', release: true, dueDate: '2026-10-20' });
+    const sch = await services.selections.applyTemplate(pm, bakerProject.id, { templateKey: 'schematic', release: true, dueDate: '2026-10-20' });
+    const stdItem = (key: string) => [...std.items, ...sch.items].find((x) => x.templateKey === key)!;
+    const pick = async (key: string, choice: string | null, areas?: string[], answers?: Record<string, string>) => { const sel = stdItem(key); const opt = choice ? sel.options.find((o) => o.name === choice) : undefined; await services.selections.decide(pm, sel.id, { optionId: opt?.id, chosenAreas: areas, answers, decidedByName: 'Robert Baker', note: 'Kickoff meeting 9/10' }); };
+    await pick('sch.roofing', 'Asphalt', undefined, { 'Shingle color': 'CertainTeed Landmark, Weathered Wood' });
+    await pick('sch.trim', 'PVC', undefined, { 'Paint color': 'Benjamin Moore White Dove' });
+    await pick('sch.windows', null, undefined, { Manufacturer: 'Andersen 400 Series', Glass: 'Low-E4', 'Muntins / grilles': 'Grilles between glass, 6 over 6', 'Paint or pre-finish': 'Pre-finished white', Hardware: 'White' });
+    await pick('sch.paint', null, undefined, { 'Wall colors / locations': 'Family room: BM Revere Pewter; hall: BM Edgecomb Gray', 'Trim color': 'BM White Dove' });
+    await pick('flooring.wood', 'White Oak');
+    await pick('flooring.tile', 'Ceramic', ['Laundry', 'Bathroom(s)']);
+    await pick('stairs.treads', 'Wood');
+    await pick('doors.interior', 'Shaker-Style');
+    await pick('doors.hardware', null, ['Door Knobs', 'Hinges']);
+    await pick('trim.woodwork', null, ['Baseboard', 'Crown Molding', 'Window Casing', 'Door Casing']);
+    await pick('windows.material', 'Clad: Vinyl');
+    await pick('mechanical.system', 'Forced Hot Air');
+    await pick('mechanical.ac', 'All zones');
+    log('created proposal, selections, both selections sheets on Baker (13 items decided) and the homeowner portal account (jane@example.com)');
 
     // ---- field: hourly costs, time entries, a vendor portal account and a bid request ----
     const memberRows = await services.organizations.listMembers(owner);
