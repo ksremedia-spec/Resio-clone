@@ -299,3 +299,15 @@ p { margin: 0; }
 .thinking::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
 @media (prefers-reduced-motion: reduce) { .thinking::after { animation: none; content: '…'; } }
+
+/* ---- leads board ---- */
+.kanban { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); gap: var(--sp-3); overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: var(--sp-2); align-items: start; }
+.kanban-col { background: var(--bg-sunken); border-radius: var(--radius-lg); padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-3); min-height: 200px; }
+.kanban-col.won { background: var(--success-soft, var(--bg-sunken)); } .kanban-col.lost { opacity: 0.85; }
+.kanban-card { text-align: left; width: 100%; background: var(--bg-elev); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--sp-3); display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow-sm, none); }
+.kanban-card:hover { border-color: var(--brand); }
+.text-warning { color: var(--warning); }
+.timeline-item .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); margin-top: 6px; justify-self: center; }
+.timeline-item .dot.brand { background: var(--brand); }
+.rule-row { display: grid; grid-template-columns: 110px 1fr; gap: var(--sp-2) var(--sp-3); align-items: center; }
+.rule-row .label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg-3); font-weight: 600; }

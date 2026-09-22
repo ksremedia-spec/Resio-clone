@@ -23,6 +23,12 @@ test('standalone: boots the in-page backend, signs in, creates and lists data', 
   await expect(page.getByTestId('budget-line').first()).toBeVisible();
   await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Invoices' }).click();
   await expect(page.getByTestId('invoice-row').first()).toBeVisible();
+  // Phase 7 screens run through the in-page backend as well.
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Leads', exact: true }).click();
+  await expect(page.getByTestId('lead-card').filter({ hasText: 'Garcia garage conversion' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Reports', exact: true }).click();
+  await page.getByTestId('report-row').filter({ hasText: 'Job cost' }).click();
+  await expect(page.getByTestId('report-table')).toContainText('Smith Residence');
   // The AI assistant runs through the in-page backend too: a read answer, then a staged write.
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'AI Assistant', exact: true }).click();
   await page.getByTestId('ai-composer').fill("What's overdue on Smith Residence?");

@@ -5,6 +5,8 @@ import { api, useApiMutation, useResource } from '../../api/hooks';
 import { MenuToggle, ToolbarActions } from '../../layouts/AppShell';
 import { Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, Field, Input, Select, Sheet, Skeleton, Switch, Textarea, Toolbar, useErrorToast, useIsCompact, useToast } from '../../ui/components';
 import { useSession } from '../../store/session';
+import AutomationsSettings from './AutomationsSettings';
+import OfflineSettings from './OfflineSettings';
 import { dateShort, timeAgo } from '../../ui/format';
 
 export default function Settings() {
@@ -16,7 +18,9 @@ export default function Settings() {
     ...(session.has('org.manage') ? [{ to: 'company', label: 'Company' }] : []),
     ...(session.has('members.invite') || session.has('members.manage') ? [{ to: 'members', label: 'Members & invitations' }] : []),
     ...(session.has('roles.manage') ? [{ to: 'roles', label: 'Roles & permissions' }] : []),
+    ...(session.has('automations.manage') ? [{ to: 'automations', label: 'Automations' }] : []),
     ...(session.has('ai.use') ? [{ to: 'ai', label: 'AI assistant' }] : []),
+    { to: 'offline', label: 'Offline' },
   ];
   return <>
     <Toolbar title="Settings" leading={<MenuToggle />}><ToolbarActions /></Toolbar>
@@ -33,6 +37,8 @@ export default function Settings() {
           <Route path="members" element={<MembersSettings />} />
           <Route path="roles" element={<RolesSettings />} />
           <Route path="ai" element={<AiSettings />} />
+          <Route path="automations" element={<AutomationsSettings />} />
+          <Route path="offline" element={<OfflineSettings />} />
         </Routes>
       </div></div>
     </div>

@@ -38,8 +38,14 @@ export function diffRecords(before: Record<string, unknown>, after: Record<strin
   return Object.keys(diff).length ? diff : null;
 }
 
+/** Called inside the writer's transaction after an activity entry is stored (automations listen here). Must never throw. */
+export type ActivityHook = (tx: DbOrTx, actor: Actor, row: typeof activityLog.$inferSelect) => Promise<void>;
+
 export class ActivityService {
+  private hooks: ActivityHook[] = [];
   constructor(private readonly deps: Deps) {}
+
+  onRecord(hook: ActivityHook) { this.hooks.push(hook); }
 
   static actorFrom(ctx: RequestContext): Actor {
     return { organizationId: ctx.organizationId, userId: ctx.userId, name: ctx.actorName, kind: 'user' };
@@ -66,6 +72,9 @@ export class ActivityService {
     }).returning();
     if (input.projectId) {
       await tx.update(projects).set({ lastActivityAt: sql`now()` }).where(eq(projects.id, input.projectId));
+    }
+    for (const hook of this.hooks) {
+      try { await hook(tx, actor, row!); } catch (err) { this.deps.log.error({ err, activity: row!.id }, 'activity hook failed'); }
     }
     return row!;
   }

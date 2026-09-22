@@ -75,10 +75,10 @@ schedule cascading and conflicts, daily logs, messaging and offline sync.
 
 ## Status
 
-Phases 1 (foundation), 2 (project core), 3 (financial core), 4 (client
-experience), 5 (time clock, payroll export, bid requests, vendor portal) and
-6 (AI assistant) are implemented with tests. Phase 7 (reports, leads,
-automations, full sync) is next.
+All seven phases are implemented with tests: 1 (foundation), 2 (project
+core), 3 (financial core), 4 (client experience), 5 (time clock, payroll
+export, bid requests, vendor portal), 6 (AI assistant) and 7 (reports,
+leads/CRM, automations, offline download).
 
 The AI assistant works two ways. With `ANTHROPIC_API_KEY` set it uses Claude
 (`AI_MODEL`, default `claude-sonnet-5`) through the Messages API with tool
@@ -86,3 +86,9 @@ use. Without a key it falls back to a built-in rule-based provider that
 understands everyday questions, so the feature and its tests need no network.
 Either way, every tool runs with the signed-in person's own permissions, and
 anything that writes data is staged for a tap-to-confirm before it happens.
+
+Automations react to activity events inside the same database transaction
+that wrote the activity, so a rule can never fire for a change that rolled
+back. Time-based rules (overdue invoices and to-dos, lead follow-ups) are
+evaluated hourly by the API server and on demand from Settings → Automations.
+Reports are computed from the same tables the screens use and download as CSV.

@@ -287,6 +287,33 @@ export function buildRoutes(s: Services, config: { NODE_ENV: string }): Route[] 
   add('POST', '/v1/ai/conversations/:id/messages', async (r) => s.ai.send(requireCtx(r), r.params.id!, b(c.sendAiMessageBody, r).content));
   add('POST', '/v1/ai/conversations/:id/confirm', async (r) => s.ai.confirm(requireCtx(r), r.params.id!, b(c.confirmAiActionBody, r)));
 
+  // ---- leads / reports / automations (Phase 7) ----
+  add('GET', '/v1/leads', async (r) => s.leads.list(requireCtx(r), q(c.listLeadsQuery, r)));
+  add('GET', '/v1/leads/board', async (r) => s.leads.board(requireCtx(r)));
+  add('POST', '/v1/leads', async (r) => s.leads.create(requireCtx(r), b(c.createLeadBody, r)), 201);
+  add('GET', '/v1/leads/:id', async (r) => s.leads.get(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/leads/:id', async (r) => s.leads.update(requireCtx(r), r.params.id!, b(c.updateLeadBody, r)));
+  add('POST', '/v1/leads/:id/move', async (r) => s.leads.move(requireCtx(r), r.params.id!, b(c.moveLeadBody, r)));
+  add('POST', '/v1/leads/:id/activities', async (r) => s.leads.addActivity(requireCtx(r), r.params.id!, b(c.leadActivityBody, r)), 201);
+  add('POST', '/v1/leads/:id/activities/:activityId/complete', async (r) => s.leads.completeActivity(requireCtx(r), r.params.id!, r.params.activityId!));
+  add('POST', '/v1/leads/:id/convert', async (r) => s.leads.convert(requireCtx(r), r.params.id!, r.body ? b(c.convertLeadBody, r) : {}));
+  add('POST', '/v1/leads/:id/archive', async (r) => s.leads.archive(requireCtx(r), r.params.id!, r.body?.archived ?? true));
+  add('GET', '/v1/reports', async (r) => s.reports.catalog(requireCtx(r)));
+  add('GET', '/v1/reports/:key', async (r) => {
+    const query = q(c.reportQuery, r);
+    const out = await s.reports.run(requireCtx(r), r.params.key!, query);
+    if (query.format === 'csv') return new Response(out.csv, { status: 200, headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="${out.filename}"` } });
+    return out.json;
+  });
+  add('GET', '/v1/automations', async (r) => s.automations.list(requireCtx(r)));
+  add('GET', '/v1/automations/catalog', async (r) => s.automations.catalog(requireCtx(r)));
+  add('GET', '/v1/automations/runs', async (r) => s.automations.listRuns(requireCtx(r), q(c.listAutomationRunsQuery, r)));
+  add('POST', '/v1/automations/run-scheduled', async (r) => s.automations.runScheduled(requireCtx(r)));
+  add('POST', '/v1/automations', async (r) => s.automations.create(requireCtx(r), b(c.createAutomationBody, r)), 201);
+  add('GET', '/v1/automations/:id', async (r) => s.automations.get(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/automations/:id', async (r) => s.automations.update(requireCtx(r), r.params.id!, b(c.updateAutomationBody, r)));
+  add('DELETE', '/v1/automations/:id', async (r) => { await s.automations.remove(requireCtx(r), r.params.id!); return ok; });
+
   // ---- sync ----
   add('GET', '/v1/sync/pull', async (r) => s.sync.pull(requireCtx(r), q(c.syncPullQuery, r)));
   add('POST', '/v1/sync/push', async (r) => ({ results: await s.sync.push(requireCtx(r), b(c.syncPushBody, r).mutations) }));
@@ -331,6 +358,7 @@ export function installFetchInterceptor(s: Services, config: { NODE_ENV: string 
         if (session) ctx = await s.auth.buildContext(session, headers.get('x-organization-id'), {});
       }
       const result = await route.handler({ method, path: url.pathname, params, query, body, headers, session, ctx });
+      if (result instanceof Response) return result;
       return new Response(JSON.stringify(result ?? null), { status: route.status ?? 200, headers: { 'content-type': 'application/json' } });
     } catch (err) {
       return errorResponse(err);

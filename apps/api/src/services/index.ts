@@ -24,6 +24,9 @@ import { PortalService } from './portal.service.js';
 import { TimeService } from './time.service.js';
 import { BidService } from './bid.service.js';
 import { AiService } from './ai.service.js';
+import { LeadService } from './lead.service.js';
+import { ReportService } from './report.service.js';
+import { AutomationService } from './automation.service.js';
 import { registerSyncHandlers } from './sync.handlers.js';
 
 export function createServices(deps: Deps) {
@@ -52,7 +55,10 @@ export function createServices(deps: Deps) {
   const time = new TimeService(deps, activity, notifications);
   const bids = new BidService(deps, activity, notifications, documents, procurement);
   const ai = new AiService(deps, activity);
-  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices, proposals, selections, portal, time, bids, ai };
+  const leads = new LeadService(deps, activity, projects, clients);
+  const reports = new ReportService(deps, budget);
+  const automations = new AutomationService(deps, activity, notifications);
+  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices, proposals, selections, portal, time, bids, ai, leads, reports, automations };
   ai.attach(services);
   registerSyncHandlers(services);
   return services;

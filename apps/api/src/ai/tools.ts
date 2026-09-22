@@ -158,6 +158,30 @@ export function buildTools(s: Services): ToolDef[] {
         return { output: items, summary: items.length ? `Found ${items.length}: ${items.map((r) => `${r.type} "${r.title}"`).join('; ')}.` : `Nothing matched "${i.query}".` };
       },
     },
+    {
+      name: 'sales_pipeline', kind: 'read', permission: 'leads.read',
+      description: 'Open leads by stage with estimated values, win rate, and which follow-ups are due.',
+      input: z.object({}),
+      summarize: () => 'checked the sales pipeline',
+      run: async (ctx) => {
+        const p = await s.reports.pipeline(ctx);
+        const board = await s.leads.board(ctx);
+        const due = board.columns.flatMap((c) => c.leads).filter((l) => l.nextFollowUpAt && new Date(l.nextFollowUpAt).getTime() <= Date.now()).map((l) => l.name);
+        const stages = p.stages.filter((x) => x.count > 0 && !['won', 'lost'].includes(x.stage)).map((x) => `${x.count} ${x.stage.replace(/_/g, ' ')} (${money(x.valueCents)})`);
+        return { output: { ...p, followUpNames: due }, summary: `${p.openCount} open lead${p.openCount === 1 ? '' : 's'} worth ${money(p.openValueCents)}${stages.length ? `: ${stages.join(', ')}` : ''}. Win rate ${(p.winRateBp / 100).toFixed(0)}%.${due.length ? ` Follow-ups due: ${due.join(', ')}.` : ' No follow-ups due.'}`, link: '/leads' };
+      },
+    },
+    {
+      name: 'receivables', kind: 'read', permission: 'invoices.read',
+      description: 'Money owed to the company: unpaid invoices grouped by how overdue they are.',
+      input: z.object({}),
+      summarize: () => 'checked receivables',
+      run: async (ctx) => {
+        const r = await s.reports.arAging(ctx, { status: 'open', format: 'json' });
+        const overdue = r.rows.filter((x) => x.daysOverdue > 0);
+        return { output: r, summary: r.rows.length ? `${money(r.totalCents)} outstanding across ${r.rows.length} invoice${r.rows.length === 1 ? '' : 's'}; ${overdue.length ? `${money(overdue.reduce((n, x) => n + x.balanceCents, 0))} is past due (oldest ${Math.max(...overdue.map((x) => x.daysOverdue))} days: ${overdue.sort((a, b) => b.daysOverdue - a.daysOverdue)[0]!.number} on ${overdue[0]!.projectName})` : 'nothing is past due'}.` : 'Nothing is outstanding.', link: '/reports/ar_aging' };
+      },
+    },
     // ---- write tools (confirmed by the person before they run) ----
     {
       name: 'create_task', kind: 'write', permission: 'tasks.write',

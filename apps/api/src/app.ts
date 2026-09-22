@@ -54,6 +54,12 @@ export async function buildApp(config: Config, overrides: { providers?: Partial<
 
   fastify.get('/health', { schema: { hide: true } }, async () => ({ ok: true, time: new Date().toISOString() }));
   await registerRoutes(fastify as unknown as AppInstance, services, config);
+  // Scheduled automations (overdue invoices/tasks, lead follow-ups) are checked hourly outside tests.
+  if (config.NODE_ENV !== 'test') {
+    const timer = setInterval(() => { void services.automations.runScheduledEverywhere(); }, 60 * 60 * 1000);
+    timer.unref?.();
+    fastify.addHook('onClose', async () => clearInterval(timer));
+  }
 
 
   return {

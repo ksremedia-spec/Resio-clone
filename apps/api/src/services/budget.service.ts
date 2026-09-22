@@ -104,14 +104,15 @@ export class BudgetService {
   }
 
   /** Company-wide budget health for the Budget page. */
-  async overview(ctx: RequestContext): Promise<Array<{ projectId: string; projectNumber: string; projectName: string; status: string; totals: contracts.Budget['totals']; contract: contracts.Budget['contract'] }>> {
+  async overview(ctx: RequestContext, opts: { includeWithoutBudget?: boolean } = {}): Promise<Array<{ projectId: string; projectNumber: string; projectName: string; status: string; totals: contracts.Budget['totals']; contract: contracts.Budget['contract'] }>> {
     ctx.require('budget.read');
     const { db } = this.deps;
     const visible = await ctx.visibleProjectIds(db);
-    const rows = await db.select({ p: projects, b: budgets }).from(projects).innerJoin(budgets, eq(budgets.projectId, projects.id)).where(and(eq(projects.organizationId, ctx.organizationId), sql`${projects.archivedAt} is null`, visible ? (visible.length ? sql`${projects.id} in ${visible}` : sql`false`) : sql`true`)).orderBy(asc(projects.number));
+    const rows = await db.select({ p: projects, b: budgets }).from(projects).leftJoin(budgets, eq(budgets.projectId, projects.id)).where(and(eq(projects.organizationId, ctx.organizationId), sql`${projects.archivedAt} is null`, visible ? (visible.length ? sql`${projects.id} in ${visible}` : sql`false`) : sql`true`)).orderBy(asc(projects.number));
     const out = [];
     for (const { p, b } of rows) {
-      const lines = await this.computeLines(db, b.id);
+      if (!b && !opts.includeWithoutBudget) continue;
+      const lines = b ? await this.computeLines(db, b.id) : [];
       const t = budgetCalc.rollupBudget(lines.map((l) => ({ originalCents: l.originalCents, approvedChangesCents: l.approvedChangesCents, committedCents: l.committedCents, actualCents: l.actualCents, projectedExtraCents: l.projectedExtraCents, invoicedCents: l.invoicedCents, paidCents: 0 })));
       const fin = await this.projectsService.financials(db, p.id, p.contractValueCents);
       out.push({ projectId: p.id, projectNumber: p.number, projectName: p.name, status: p.status, totals: { originalCents: t.originalCents, approvedChangesCents: t.approvedChangesCents, revisedCents: t.revisedCents, committedCents: t.committedCents, actualCents: t.actualCents, projectedCents: t.projectedCents, invoicedCents: t.invoicedCents, varianceCents: t.varianceCents, remainingCents: t.remainingCents, percentSpentBp: t.percentSpentBp, status: t.status }, contract: { contractValueCents: fin.contractValueCents, approvedChangesCents: fin.approvedChangesCents, revisedContractCents: fin.revisedContractCents, invoicedCents: fin.invoicedCents, paidCents: fin.paidCents, outstandingCents: fin.outstandingCents, projectedMarginCents: fin.revisedContractCents - t.projectedCents } });

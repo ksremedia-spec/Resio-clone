@@ -217,6 +217,27 @@ export async function seedDemo(services: Services, db: Db, log: (m: string) => v
     await services.bids.send(pm, bidReq.id);
     await services.bids.submitBid(pm, bidReq.id, { vendorId: plumber.id, amountCents: 1_785_000, notes: 'Includes pump. 2 weeks lead time.', validUntil: '2026-11-01' });
     log('created the vendor portal account (orders@hillcountrycabinets.example) and a bid request');
+
+    // ---- advanced: leads pipeline, automations ----
+    const est = (await services.auth.buildContext({ sessionId: null as unknown as string, user: (await db.select().from(users).where(eq(users.id, members.estimator!)))[0]!, activeOrganizationId: owner.organizationId }, owner.organizationId, {}))!;
+    const soon = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
+    const garcia = await services.leads.create(est, { name: 'Garcia garage conversion', contactName: 'Luis Garcia', contactEmail: 'luis.garcia@example.com', contactPhone: '512-555-0177', address: { line1: '2210 Bluff Springs Rd', city: 'Austin', region: 'TX' }, source: 'referral', projectType: 'remodel', estimatedValueCents: 8_500_000, budgetRangeLowCents: 7_000_000, budgetRangeHighCents: 9_500_000, targetStartDate: '2027-02-01', notes: 'Wants an ADU-style garage conversion with a bathroom. Referred by the Smiths.', nextFollowUpAt: soon(1) });
+    await services.leads.move(est, garcia.id, { stage: 'qualified' });
+    await services.leads.addActivity(est, garcia.id, { kind: 'meeting', body: 'Site walk done. Existing slab is sound; will need a new sewer tap.', dueAt: soon(2) });
+    const patel = await services.leads.create(est, { name: 'Patel whole-home remodel', contactName: 'Anita Patel', contactEmail: 'anita.patel@example.com', source: 'website', projectType: 'remodel', estimatedValueCents: 32_000_000, targetStartDate: '2027-04-15', notes: '1970s ranch, wants open plan and a new primary suite.' });
+    await services.leads.move(est, patel.id, { stage: 'estimating' });
+    const lakeview = await services.leads.create(est, { name: 'Lakeview HOA pool house', contactName: 'Board of Directors', contactEmail: 'board@lakeviewhoa.example', source: 'repeat_client', projectType: 'commercial', estimatedValueCents: 18_500_000, notes: 'Board meets first Tuesday monthly.', nextFollowUpAt: soon(-1) });
+    await services.leads.move(est, lakeview.id, { stage: 'proposal_sent' });
+    await services.leads.create(est, { name: 'Okafor deck and pergola', contactName: 'Chidi Okafor', contactPhone: '512-555-0130', source: 'social', projectType: 'service', estimatedValueCents: 2_400_000, notes: 'Saw the Harbor Point photos on Instagram.' });
+    const morrison = await services.leads.create(est, { name: 'Morrison bathroom refresh', contactName: 'Kate Morrison', source: 'website', projectType: 'remodel', estimatedValueCents: 3_100_000, notes: '' });
+    await services.leads.move(est, morrison.id, { stage: 'lost', lostReason: 'Chose a handyman service on price' });
+    log('created a sales pipeline of 5 leads');
+
+    await services.automations.create(owner, { name: 'Change order approved → update the schedule', description: 'When a client approves a change order, the project managers get a to-do to update the schedule and purchase orders.', trigger: { event: 'change_order.approved', projectId: null }, actions: [{ type: 'create_task', name: 'Update schedule and POs for {{object}}', description: 'Approved change order: {{summary}}', daysUntilDue: 2, priority: 'high', assignTo: 'project_managers' }], enabled: true });
+    await services.automations.create(owner, { name: 'Daily log posted → tell the office', description: 'Tom in the office is notified whenever a daily log is posted so billing stays current.', trigger: { event: 'daily_log.posted', projectId: null }, actions: [{ type: 'notify', to: 'role', roleKey: 'office', title: 'Daily log posted on {{project}}', body: '{{summary}}' }], enabled: true });
+    await services.automations.create(owner, { name: 'Invoice overdue → follow up', description: 'The day an invoice goes past due, create a follow-up to-do and email the client a reminder.', trigger: { event: 'invoice.overdue', projectId: null }, actions: [{ type: 'create_task', name: 'Follow up on overdue {{object}}', description: '{{summary}}', daysUntilDue: 1, priority: 'high', assignTo: 'project_managers' }, { type: 'email', to: 'client', subject: 'Reminder: {{object}} is past due', body: 'Hello,\n\nOur records show {{object}} for {{project}} is past its due date. Please let us know if you have any questions or have already sent payment.\n\nThank you,\n{{company}}' }], enabled: true });
+    await services.automations.create(owner, { name: 'Bid received → notify the estimator', description: '', trigger: { event: 'bid.received', projectId: null }, actions: [{ type: 'notify', to: 'role', roleKey: 'estimator', title: 'New bid on {{project}}', body: '{{summary}}' }], enabled: false });
+    log('created 4 automations (3 enabled)');
     log('seed complete');
     return true;
 }

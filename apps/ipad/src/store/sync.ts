@@ -2,6 +2,7 @@ import { db } from './db';
 import { replay, getAuth } from '../api/client';
 import { emit, on } from './events';
 import { network } from '../native';
+import { refreshOfflineIfEnabled } from './offline';
 
 /**
  * Outbox processor. Runs when connectivity returns, when a change is queued,
@@ -59,7 +60,7 @@ let started = false;
 export function startSyncEngine() {
   if (started) return;
   started = true;
-  network.onChange((online) => { emit('offline', !online); if (online) void processOutbox(); });
+  network.onChange((online) => { emit('offline', !online); if (online) void processOutbox().then(() => refreshOfflineIfEnabled()); });
   // New items trigger a run; runs never re-trigger themselves (they emit outbox:changed instead), and failed items back off.
   on('outbox', () => { void network.isOnline().then((online) => { if (online) void processOutbox(); }); });
   setInterval(() => { void network.isOnline().then((online) => { if (online) void processOutbox(); }); }, 15_000);

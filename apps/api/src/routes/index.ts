@@ -14,6 +14,7 @@ import { syncRoutes } from './sync.routes.js';
 import { financialRoutes } from './financial.routes.js';
 import { fieldRoutes } from './field.routes.js';
 import { aiRoutes } from './ai.routes.js';
+import { advancedRoutes } from './advanced.routes.js';
 
 export async function registerRoutes(app: AppInstance, services: Services, config: Config) {
   await app.register(async (v1) => {
@@ -30,5 +31,6 @@ export async function registerRoutes(app: AppInstance, services: Services, confi
     await financialRoutes(v1 as AppInstance, services);
     await fieldRoutes(v1 as AppInstance, services);
     await aiRoutes(v1 as AppInstance, services);
+    await advancedRoutes(v1 as AppInstance, services);
   }, { prefix: '/v1' });
 }

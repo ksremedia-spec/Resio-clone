@@ -31,14 +31,21 @@ export interface OutboxItem {
   invalidates: string[];
 }
 export interface BlobEntry { key: string; orgId: string; blob: Blob; filename: string; contentType: string; createdAt: number }
+/** A record pulled through /v1/sync/pull by "Download for offline". */
+export interface LocalRecord { entity: string; id: string; orgId: string; projectId: string | null; updatedAt: string; version: number; data: unknown }
+export interface MetaEntry { key: string; value: unknown }
 
 export class BuildlineDb extends Dexie {
   cache!: Table<CacheEntry, string>;
   outbox!: Table<OutboxItem, number>;
   blobs!: Table<BlobEntry, string>;
+  records!: Table<LocalRecord, [string, string]>;
+  meta!: Table<MetaEntry, string>;
   constructor() {
     super('buildline');
     this.version(1).stores({ cache: 'url, orgId, storedAt', outbox: '++id, clientMutationId, orgId, status, createdAt', blobs: 'key, orgId' });
+    // v2: full offline download (records pulled through sync + per-org metadata such as the sync cursor).
+    this.version(2).stores({ cache: 'url, orgId, storedAt', outbox: '++id, clientMutationId, orgId, status, createdAt', blobs: 'key, orgId', records: '[entity+id], orgId, entity, projectId, updatedAt', meta: 'key' });
   }
 }
 

@@ -120,6 +120,27 @@ AI assistant (new):
   demo you can paste an Anthropic API key there to get natural-language
   answers; without one the built-in understanding still works.
 
+Leads, reports, automations and offline (new):
+
+* **Leads** in the menu: a board of the sales pipeline. Tap a card to see the
+  contact, log a call or note (with a follow-up date), move it through the
+  stages, or tap **Won — create project** to turn it into a client and project
+  in one step. Mark one lost and say why.
+* **Reports**: Job cost, Receivables aging, Time by project and Sales
+  pipeline. Every report has a **Download CSV** button; if your browser blocks
+  downloads you get a copy-and-paste view instead.
+* Settings → **Automations**: rules like "change order approved → to-do for the
+  project managers" and "invoice overdue → follow-up to-do and email". Start
+  from a ready-made rule or build your own. **Run now** checks the time-based
+  rules immediately; the run log underneath shows exactly what each rule did.
+  Try it: sign in as Rosa, post a daily log on Smith Residence, then sign in
+  as Tom (office) and open the bell: the "Daily log posted" rule notified him.
+* Settings → **Offline**: **Download for offline** fetches every project,
+  task, log, document list and message you can see, plus the screens that
+  show them, so the iPad works with no signal. Reconnecting fetches only what
+  changed.
+* Ask the assistant "How is the pipeline?" or "Who owes us money?".
+
 ## Starting over
 
 Stop the app (close the Terminal window), delete the folder `data/demo` inside
@@ -133,7 +154,11 @@ notifications, search, activity history, offline queue, cost catalog and cost
 codes, estimates, budgets and job costing, change orders, purchase orders and
 bills, invoices and payments, vendors, proposals, selections, the client portal
 with approvals and online payment, time clock with approvals and payroll export,
-bid requests and the vendor portal, the AI assistant with confirm-before-acting.
+bid requests and the vendor portal, the AI assistant with confirm-before-acting,
+leads and the sales pipeline, reports with CSV export, automations, and the
+offline download.
 
-Not built yet: leads, reports and automations.
-Those menu items show a "coming in Phase 7" note.
+Everything in the original plan is built. What is deliberately simple in this
+version: the demo payment provider stands in for Stripe, email goes to a log
+unless SMTP is configured, and the AI assistant uses built-in understanding
+unless an Anthropic key is added.

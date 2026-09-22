@@ -121,6 +121,8 @@ export class RuleBasedProvider implements LlmProvider {
     }
 
     // ----- read intents -----
+    if (/\b(leads?|pipeline|prospects?|follow[- ]?ups?|sales)\b/.test(lower)) return has('sales_pipeline') ? call('sales_pipeline', {}) : { text: "You don't have access to leads.", toolCalls: [] };
+    if (/\b(aging|past due|receivables?|owed to us|who owes)\b/.test(lower)) return has('receivables') ? call('receivables', {}) : { text: "You don't have access to invoices.", toolCalls: [] };
     if (/\b(overdue|late|behind|slipp)/.test(lower)) return optProject('overdue_tasks');
     if (/\b(budget|over budget|job cost|margin|spend|spent|committed|variance)\b/.test(lower)) return needProject('budget_status');
     if (/\b(invoice|unpaid|outstanding|owe|owes|balance|receivable|paid)\b/.test(lower)) return optProject('unpaid_invoices');
