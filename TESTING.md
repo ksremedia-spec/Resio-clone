@@ -75,6 +75,20 @@ Money (new):
 * Vendors, Estimating (catalog and cost codes), Budget and Invoices in the left
   menu show the same information across every project.
 
+Client experience (new):
+
+* Sign in as the homeowner (jane@example.com, same password). You get a short
+  menu and a home page with what needs your decision and what is due. Open the
+  project, approve the change order that was sent to you, choose the shower
+  tile, and pay an invoice with **Pay now** (payments are simulated in demo).
+* As the owner: Projects → Baker Addition → Proposals shows the proposal sent
+  to the Bakers. Clients → Baker Family → add a contact with an email and tap
+  the link icon to invite them to the portal; the invitation link appears on
+  screen so you can open it in a private window.
+* Projects → Smith Residence → Selections: release the "Wall colour" choice to
+  the client, or record a choice on their behalf. Picking an option over the
+  allowance drafts a change order for the difference automatically.
+
 ## Starting over
 
 Stop the app (close the Terminal window), delete the folder `data/demo` inside
@@ -86,8 +100,8 @@ Done and tested: sign-in and company setup, roles and permissions, clients,
 projects, schedule with dependencies, tasks, daily logs, documents, messaging,
 notifications, search, activity history, offline queue, cost catalog and cost
 codes, estimates, budgets and job costing, change orders, purchase orders and
-bills, invoices and payments, vendors.
+bills, invoices and payments, vendors, proposals, selections, the client portal
+with approvals and online payment.
 
-Not built yet: the client portal (proposals, selections, online approvals and
-payments), the vendor portal, time clock, the AI assistant, leads and reports.
+Not built yet: the vendor portal, time clock, the AI assistant, leads and reports.
 Those menu items show a "coming in Phase N" note.

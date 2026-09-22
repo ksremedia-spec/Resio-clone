@@ -10,10 +10,12 @@ import type { NotificationService } from './notification.service.js';
 import type { DocumentService } from './document.service.js';
 import { decodeCursor, encodeCursor, page } from '../lib/pagination.js';
 import { projectTeamUserIds } from '../lib/recipients.js';
+import { contactIdFor, isClientPortal } from '../lib/portal.js';
 
 type CoRow = typeof changeOrders.$inferSelect;
 const CO_OPEN = ['draft', 'pending_internal', 'sent', 'viewed'] as const;
 const EDITABLE = ['draft', 'pending_internal'] as const;
+const CLIENT_VISIBLE = ['sent', 'viewed', 'approved', 'declined'] as const;
 
 /**
  * Change orders price extra (or removed) work with the same cost/markup/tax
@@ -29,6 +31,7 @@ export class ChangeOrderService {
     const conditions = [eq(changeOrders.organizationId, ctx.organizationId), isNull(changeOrders.archivedAt)];
     if (query.projectId) { await ctx.requireProjectAccess(db, query.projectId, { allowArchived: true }); conditions.push(eq(changeOrders.projectId, query.projectId)); }
     else { const visible = await ctx.visibleProjectIds(db); if (visible) conditions.push(visible.length ? inArray(changeOrders.projectId, visible) : sql`false`); }
+    if (ctx.membership.external) conditions.push(inArray(changeOrders.status, [...CLIENT_VISIBLE]));
     if (query.status === 'open') conditions.push(inArray(changeOrders.status, [...CO_OPEN]));
     else if (query.status !== 'all') conditions.push(eq(changeOrders.status, query.status));
     const cursor = decodeCursor<{ t: string; id: string }>(query.cursor);
@@ -46,6 +49,14 @@ export class ChangeOrderService {
     const [r] = await db.select({ co: changeOrders, projectName: projects.name }).from(changeOrders).innerJoin(projects, eq(projects.id, changeOrders.projectId)).where(and(eq(changeOrders.id, id), eq(changeOrders.organizationId, ctx.organizationId))).limit(1);
     if (!r) throw AppError.notFound('Change order');
     await ctx.requireProjectAccess(db, r.co.projectId, { allowArchived: true });
+    if (ctx.membership.external && !CLIENT_VISIBLE.includes(r.co.status as any)) throw AppError.notFound('Change order');
+    if (isClientPortal(ctx) && r.co.status === 'sent') {
+      await db.transaction(async (tx) => {
+        await tx.update(changeOrders).set({ status: 'viewed', viewedAt: sql`now()`, updatedAt: sql`now()` }).where(and(eq(changeOrders.id, id), eq(changeOrders.status, 'sent')));
+        await this.activity.record(tx, ActivityService.actorFrom(ctx), { projectId: r.co.projectId, verb: 'viewed', objectType: 'change_order', objectId: id, objectLabel: `#${r.co.number} ${r.co.title}`, clientVisible: true });
+      });
+      r.co.status = 'viewed';
+    }
     const [lines, apps, attachments] = await Promise.all([this.linesFor(db, [id]), this.approvalsFor(db, [id]), this.documents.attachmentsFor(db, ctx, 'change_order', [id])]);
     return serializeCo(r.co, r.projectName, lines.get(id) ?? [], apps.get(id) ?? [], (attachments.get(id) ?? []).map((a) => a.document));
   }
@@ -74,6 +85,11 @@ export class ChangeOrderService {
 
   async create(ctx: RequestContext, projectId: string, input: any): Promise<contracts.ChangeOrder> {
     ctx.require('change_orders.write');
+    return this.createInternal(ctx, projectId, input);
+  }
+
+  /** Create without the permission gate: selections draft an overage change order on the client's behalf. */
+  async createInternal(ctx: RequestContext, projectId: string, input: any): Promise<contracts.ChangeOrder> {
     const id = await this.deps.db.transaction(async (tx) => {
       await ctx.requireProjectAccess(tx, projectId);
       const [mx] = await tx.select({ max: sql<number>`coalesce(max(${changeOrders.number}), 0)::int` }).from(changeOrders).where(eq(changeOrders.projectId, projectId));
@@ -83,7 +99,14 @@ export class ChangeOrderService {
       await this.activity.record(tx, ActivityService.actorFrom(ctx), { projectId, verb: 'created', objectType: 'change_order', objectId: co!.id, objectLabel: `#${co!.number} ${co!.title}` });
       return co!.id;
     });
-    return this.get(ctx, id);
+    return this.getInternal(id);
+  }
+
+  private async getInternal(id: string): Promise<contracts.ChangeOrder> {
+    const { db } = this.deps;
+    const [r] = await db.select({ co: changeOrders, projectName: projects.name }).from(changeOrders).innerJoin(projects, eq(projects.id, changeOrders.projectId)).where(eq(changeOrders.id, id)).limit(1);
+    const [lines, apps] = await Promise.all([this.linesFor(db, [id]), this.approvalsFor(db, [id])]);
+    return serializeCo(r!.co, r!.projectName, lines.get(id) ?? [], apps.get(id) ?? []);
   }
 
   async update(ctx: RequestContext, id: string, input: any): Promise<contracts.ChangeOrder> {
@@ -156,18 +179,24 @@ export class ChangeOrderService {
   }
 
   /** Record the client's decision (or an internal decision on their behalf, e.g. a signed paper copy). */
-  async decide(ctx: RequestContext, id: string, input: { decision: 'approved' | 'declined'; decidedByName: string; note?: string; signatureDocumentId?: string }): Promise<contracts.ChangeOrder> {
-    ctx.require('change_orders.write');
+  async decide(ctx: RequestContext, id: string, input: { decision: 'approved' | 'declined'; decidedByName?: string; note?: string; signatureDocumentId?: string }): Promise<contracts.ChangeOrder> {
+    const portal = isClientPortal(ctx);
+    if (!portal) ctx.require('change_orders.write');
     await this.deps.db.transaction(async (tx) => {
       const [co] = await tx.select().from(changeOrders).where(and(eq(changeOrders.id, id), eq(changeOrders.organizationId, ctx.organizationId))).limit(1);
       if (!co) throw AppError.notFound('Change order');
       await ctx.requireProjectAccess(tx, co.projectId);
-      if (!['sent', 'viewed', 'draft', 'pending_internal'].includes(co.status)) throw AppError.conflict(`A ${co.status} change order cannot be decided again.`);
+      if (portal && !CLIENT_VISIBLE.includes(co.status as any)) throw AppError.notFound('Change order');
+      const allowed = portal ? ['sent', 'viewed'] : ['sent', 'viewed', 'draft', 'pending_internal'];
+      if (!allowed.includes(co.status)) throw AppError.conflict(`A ${co.status} change order cannot be decided again.`);
+      const decidedByName = portal ? ctx.actorName : (input.decidedByName ?? ctx.actorName);
+      const contactId = await contactIdFor(tx, ctx);
+      input = { ...input, decidedByName };
       const [n] = await tx.select({ n: sql<number>`count(*)::int` }).from(changeOrderLines).where(eq(changeOrderLines.changeOrderId, id));
       if (!n?.n) throw AppError.conflict('Add at least one line before approving a change order.');
       let [approval] = await tx.select().from(approvals).where(and(eq(approvals.objectType, 'change_order'), eq(approvals.objectId, id), eq(approvals.status, 'pending'))).limit(1);
       if (!approval) [approval] = await tx.insert(approvals).values({ organizationId: ctx.organizationId, projectId: co.projectId, objectType: 'change_order', objectId: id, requestedBy: ctx.userId, status: 'pending', amountCents: co.totalCents, title: `CO #${co.number} ${co.title}` }).returning();
-      await tx.update(approvals).set({ status: input.decision, decidedByUserId: ctx.userId, decidedByName: input.decidedByName, decidedAt: sql`now()`, decisionNote: input.note ?? null, signatureDocumentId: input.signatureDocumentId ?? null, ipAddress: ctx.meta.ip ?? null, userAgent: ctx.meta.userAgent ?? null, snapshot: { totalCents: co.totalCents, costCents: co.costCents } }).where(eq(approvals.id, approval!.id));
+      await tx.update(approvals).set({ status: input.decision, decidedByUserId: ctx.userId, decidedByContactId: contactId, decidedByName: input.decidedByName, decidedAt: sql`now()`, decisionNote: input.note ?? null, signatureDocumentId: input.signatureDocumentId ?? null, ipAddress: ctx.meta.ip ?? null, userAgent: ctx.meta.userAgent ?? null, snapshot: { totalCents: co.totalCents, costCents: co.costCents } }).where(eq(approvals.id, approval!.id));
       await tx.update(changeOrders).set({ status: input.decision, decidedAt: sql`now()`, decisionApprovalId: approval!.id, updatedAt: sql`now()`, updatedBy: ctx.userId, version: sql`${changeOrders.version} + 1` }).where(eq(changeOrders.id, id));
       const [project] = await tx.select().from(projects).where(eq(projects.id, co.projectId)).limit(1);
       if (input.decision === 'approved') {

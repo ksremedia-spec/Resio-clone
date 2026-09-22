@@ -23,6 +23,8 @@ const schema = z.object({
   EMAIL_DRIVER: z.enum(['console', 'smtp', 'memory']).default('console'),
   SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().default('Buildline <no-reply@buildline.local>'),
+  /** 'demo' settles card/ACH payments instantly (development, demos, tests); 'none' disables online payment. */
+  PAYMENTS_DRIVER: z.enum(['none', 'demo']).default('demo'),
   RATE_LIMIT_MAX: z.coerce.number().int().default(300),
   MAX_UPLOAD_MB: z.coerce.number().int().default(200),
   LOG_LEVEL: z.string().default('info'),

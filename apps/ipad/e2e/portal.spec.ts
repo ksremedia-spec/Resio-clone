@@ -1,0 +1,165 @@
+import { expect, test } from '@playwright/test';
+import { openProject, section, signIn } from './helpers';
+
+const HOMEOWNER = 'jane@example.com';
+
+test.describe('client experience', () => {
+  test('proposals: create from the estimate, send, and record the acceptance which locks the estimate', async ({ page }) => {
+    await signIn(page);
+    await openProject(page, /Harbor Point/);
+    await section(page, 'Estimate');
+    await page.getByRole('button', { name: 'Section', exact: true }).click();
+    await page.getByRole('dialog').getByPlaceholder('Kitchen').fill('Lobby refresh');
+    await page.getByRole('dialog').getByRole('button', { name: 'Add section' }).click();
+    await page.getByRole('button', { name: 'Line', exact: true }).first().click();
+    const line = page.getByRole('dialog');
+    await line.getByRole('button', { name: 'Skip' }).click();
+    await line.getByPlaceholder('Shaker cabinets').fill('Paint lobby');
+    await line.getByLabel('Unit cost Labor').fill('4000');
+    await line.getByLabel('Unit cost Labor').blur();
+    await line.getByRole('button', { name: 'Add line' }).click();
+    await expect(page.getByTestId('estimate-line')).toHaveCount(1);
+    await section(page, 'Proposals');
+    await page.getByRole('button', { name: 'New proposal' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Create draft' }).click();
+    await expect(page.getByText('Proposal created from the estimate.')).toBeVisible();
+    const detail = page.getByRole('dialog');
+    await expect(detail.getByTestId('proposal-document')).toContainText('Paint lobby');
+    await expect(detail.getByTestId('proposal-document')).toContainText('$4,800.00');
+    await detail.getByRole('button', { name: 'Send to client' }).click();
+    await expect(page.getByText('Proposal sent to the client.')).toBeVisible();
+    await detail.getByRole('button', { name: 'Record acceptance' }).click();
+    const decide = page.getByRole('dialog').last();
+    await decide.getByPlaceholder('Jane Smith').fill('Board chair');
+    await decide.getByRole('button', { name: 'Record acceptance' }).click();
+    await expect(page.getByText('Accepted. This is now the contract.')).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByTestId('proposal-row').first()).toContainText('accepted');
+    await section(page, 'Estimate');
+    await expect(page.getByText('Locked', { exact: true })).toBeVisible();
+  });
+
+  test('selections: release one and record the client choice; an over-allowance pick drafts a change order', async ({ page }) => {
+    await signIn(page);
+    await openProject(page, /Smith Residence/);
+    await section(page, 'Selections');
+    await expect(page.getByTestId('selection-row')).toHaveCount(3);
+    await page.getByTestId('selection-row').filter({ hasText: 'Wall colour' }).click();
+    const detail = page.getByRole('dialog');
+    await detail.getByRole('button', { name: 'Release to client' }).click();
+    await expect(page.getByText('Released to the client.')).toBeVisible();
+    await detail.getByTestId('selection-option').filter({ hasText: 'White Dove' }).click();
+    await detail.getByRole('button', { name: 'Record choice' }).click();
+    const confirm = page.getByRole('dialog').last();
+    await confirm.getByPlaceholder('Jane Smith').fill('Jane Smith');
+    await confirm.getByRole('button', { name: 'Confirm' }).click();
+    await expect(page.getByText('Choice recorded.')).toBeVisible();
+    await expect(detail.getByText('chosen')).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+    // A new selection with an option over the allowance: choosing it drafts a change order for the difference.
+    await page.getByRole('button', { name: 'New selection' }).click();
+    const form = page.getByRole('dialog');
+    await form.getByPlaceholder('Tile', { exact: true }).fill('Lighting');
+    await form.getByPlaceholder('Shower floor tile').fill('Pendant lights');
+    await form.getByLabel('Allowance').fill('300');
+    await form.getByLabel('Allowance').blur();
+    const opts = form.getByTestId('option-editor');
+    await opts.nth(0).getByLabel('Option name').fill('Basic pendant');
+    await opts.nth(0).getByLabel('Client price').fill('300');
+    await opts.nth(0).getByLabel('Client price').blur();
+    await opts.nth(1).getByLabel('Option name').fill('Designer pendant');
+    await opts.nth(1).getByLabel('Client price').fill('1000');
+    await opts.nth(1).getByLabel('Client price').blur();
+    await form.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(page.getByText('Selection created.')).toBeVisible();
+    const tile = page.getByRole('dialog');
+    await tile.getByRole('button', { name: 'Release to client' }).click();
+    await expect(page.getByText('Released to the client.')).toBeVisible();
+    await tile.getByTestId('selection-option').filter({ hasText: 'Designer pendant' }).click();
+    await tile.getByRole('button', { name: 'Record choice' }).click();
+    await expect(page.getByRole('dialog').last().getByText('+$700.00')).toBeVisible();
+    await page.getByRole('dialog').last().getByPlaceholder('Jane Smith').fill('Jane Smith');
+    await page.getByRole('dialog').last().getByRole('button', { name: 'Confirm' }).click();
+    await expect(page.getByText(/change order was drafted/)).toBeVisible();
+    await expect(tile.getByRole('button', { name: /Change order/ })).toBeVisible();
+  });
+
+  test('homeowner portal: sees only their project, approves the sent change order and pays an invoice online', async ({ page }) => {
+    await signIn(page, HOMEOWNER);
+    await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Jane/ })).toBeVisible();
+    // Short menu, no money or estimating pages.
+    const nav = page.getByRole('navigation', { name: 'Main navigation' });
+    await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Estimating' })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: 'Clients' })).toHaveCount(0);
+    await expect(page.getByTestId('portal-approval').first()).toBeVisible();
+    await expect(page.getByTestId('portal-invoice').first()).toBeVisible();
+    await page.getByTestId('portal-open-project').first().click();
+    await expect(page.getByRole('heading', { level: 1 }).filter({ hasText: 'Smith Residence' })).toBeVisible();
+    const sections = page.getByRole('navigation', { name: 'Project sections' });
+    await expect(sections.getByRole('link', { name: 'Estimate' })).toHaveCount(0);
+    await expect(sections.getByRole('link', { name: 'Budget' })).toHaveCount(0);
+    await expect(sections.getByRole('link', { name: 'Purchasing' })).toHaveCount(0);
+    await section(page, 'Change Orders');
+    await expect(page.getByTestId('co-row').first()).toBeVisible();
+    await expect(page.getByTestId('co-row').filter({ hasText: /draft/ })).toHaveCount(0); // drafts are never shown to the client
+    await page.getByTestId('co-row').filter({ hasText: 'slab-front' }).click();
+    const co = page.getByRole('dialog');
+    await expect(co.getByText('Unit cost')).toHaveCount(0);
+    await co.getByRole('button', { name: 'Approve', exact: true }).click();
+    await page.getByRole('dialog').last().getByRole('button', { name: 'Approve', exact: true }).click();
+    await expect(page.getByText('Approved. Thank you!')).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+    await section(page, 'Invoices');
+    await expect(page.getByTestId('invoice-row').first()).toBeVisible();
+    await expect(page.getByTestId('invoice-row').filter({ hasText: /draft/ })).toHaveCount(0); // draft draw 3 hidden
+    await page.getByTestId('invoice-row').filter({ hasText: 'INV-0002' }).click();
+    await page.getByTestId('pay-now').click();
+    await expect(page.getByText(/Thank you!/).first()).toBeVisible();
+    await expect(page.getByRole('dialog').locator('.badge').filter({ hasText: /^paid$/ }).first()).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+    await section(page, 'Selections');
+    await page.getByTestId('selection-row').filter({ hasText: 'Shower floor tile' }).click();
+    const sel = page.getByRole('dialog');
+    await sel.getByTestId('selection-option').filter({ hasText: 'Hex porcelain' }).click();
+    await sel.getByRole('button', { name: 'Confirm my choice' }).click();
+    await page.getByRole('dialog').last().getByRole('button', { name: 'Confirm' }).click();
+    await expect(page.getByText('Choice recorded.')).toBeVisible();
+  });
+
+  test('homeowner portal: accepts a proposal by typing a signature', async ({ page }) => {
+    await signIn(page);
+    // Invite the Baker family contact to the portal, then accept as them.
+    await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Clients', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Clients' })).toBeVisible();
+    await page.getByRole('button', { name: /Baker Family/ }).first().click();
+    await expect(page.getByRole('heading', { name: 'Baker Family' })).toBeVisible();
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    const contact = page.getByRole('dialog');
+    await contact.getByLabel('First name').fill('Bill');
+    await contact.getByLabel('Last name').fill('Baker');
+    await contact.getByLabel('Email').fill('bill.baker@example.com');
+    await contact.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Invite to client portal' }).first().click();
+    const link = await page.getByTestId('portal-invite-link').inputValue();
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: /Ridgeline/ }).click();
+    await page.getByRole('menuitem', { name: 'Sign out' }).click();
+    await page.goto(new URL(link).pathname + new URL(link).search);
+    await page.getByLabel('First name').fill('Bill');
+    await page.getByLabel('Last name').fill('Baker');
+    await page.getByLabel('Choose a password').fill('homeowner password 1');
+    await page.getByRole('button', { name: 'Create account & join' }).click();
+    await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Bill/ })).toBeVisible();
+    await page.getByTestId('portal-approval').filter({ hasText: 'PROP-0001' }).click();
+    const proposal = page.getByRole('dialog');
+    await expect(proposal.getByTestId('proposal-document')).toContainText('Family room addition');
+    await proposal.getByRole('button', { name: 'Accept & sign' }).click();
+    const sign = page.getByRole('dialog').last();
+    await sign.getByTestId('signature').fill('Bill Baker');
+    await sign.getByRole('button', { name: 'Sign and accept' }).click();
+    await expect(page.getByText('Accepted. This is now the contract.')).toBeVisible();
+    await expect(proposal.locator('.badge').filter({ hasText: /^accepted$/ }).first()).toBeVisible();
+    await expect(proposal.getByText('Bill Baker').first()).toBeVisible();
+  });
+});

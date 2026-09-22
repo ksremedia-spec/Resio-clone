@@ -22,6 +22,8 @@ const sectionModules = {
   changeOrders: () => import('../changeOrders/ProjectChangeOrders'),
   invoices: () => import('../invoices/ProjectInvoices'),
   purchasing: () => import('../purchasing/ProjectPurchasing'),
+  proposals: () => import('../proposals/ProjectProposals'),
+  selections: () => import('../selections/ProjectSelections'),
 };
 const ProjectSchedule = lazy(sectionModules.schedule);
 const ProjectTasks = lazy(sectionModules.tasks);
@@ -33,6 +35,8 @@ const ProjectBudget = lazy(sectionModules.budget);
 const ProjectChangeOrders = lazy(sectionModules.changeOrders);
 const ProjectInvoices = lazy(sectionModules.invoices);
 const ProjectPurchasing = lazy(sectionModules.purchasing);
+const ProjectProposals = lazy(sectionModules.proposals);
+const ProjectSelections = lazy(sectionModules.selections);
 /** Warm every section chunk once a project opens so sections keep working if connectivity drops afterwards. */
 function prefetchSections() { for (const load of Object.values(sectionModules)) void load().catch(() => {}); }
 
@@ -86,7 +90,7 @@ export default function ProjectHub() {
           {fromCache && <Badge tone="warning">Cached</Badge>}
         </div>
         <button className="btn quiet icon" aria-label={project.isFavorite ? 'Remove from favourites' : 'Add to favourites'} aria-pressed={project.isFavorite} onClick={() => favorite.mutate(!project.isFavorite)}><Icon name="star" style={{ fill: project.isFavorite ? 'var(--warning)' : 'none', color: project.isFavorite ? 'var(--warning)' : undefined }} /></button>
-        {session.membership?.defaultMode !== 'portal' && <Button variant="quiet" icon="hardhat" onClick={() => navigate(`/field/${project.id}`)}>{compact ? '' : 'Field mode'}</Button>}
+        {!session.membership?.external && session.membership?.defaultMode !== 'portal' && <Button variant="quiet" icon="hardhat" onClick={() => navigate(`/field/${project.id}`)}>{compact ? '' : 'Field mode'}</Button>}
         {session.has('projects.write') && <MenuButton items={[
           { label: 'Edit project', icon: 'edit', onSelect: () => setEditing(true) },
           ...(session.has('projects.archive') ? [{ label: project.archivedAt ? 'Restore project' : 'Archive project', icon: 'trash' as const, danger: !project.archivedAt, onSelect: () => setArchiving(true) }] : []),
@@ -114,10 +118,12 @@ export default function ProjectHub() {
           <Route path="team" element={<ProjectTeam project={project} />} />
           <Route path="estimate" element={<ProjectEstimate project={project} />} />
           <Route path="budget" element={<ProjectBudget project={project} />} />
-          <Route path="selections" element={<ComingSoonSection title="Selections" phase="Phase 4" />} />
+          <Route path="selections" element={<ProjectSelections project={project} />} />
+          <Route path="selections/:selectionId" element={<ProjectSelections project={project} />} />
           <Route path="change-orders" element={<ProjectChangeOrders project={project} />} />
           <Route path="change-orders/:coId" element={<ProjectChangeOrders project={project} />} />
-          <Route path="proposals" element={<ComingSoonSection title="Proposals" phase="Phase 4" />} />
+          <Route path="proposals" element={<ProjectProposals project={project} />} />
+          <Route path="proposals/:proposalId" element={<ProjectProposals project={project} />} />
           <Route path="invoices" element={<ProjectInvoices project={project} />} />
           <Route path="invoices/:invoiceId" element={<ProjectInvoices project={project} />} />
           <Route path="purchasing" element={<ProjectPurchasing project={project} />} />

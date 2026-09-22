@@ -14,3 +14,4 @@ export * from './dailyLog.js';
 export * from './message.js';
 export { PERMISSIONS as PERMISSIONS_LIST } from '../permissions.js';
 export * from './financial.js';
+export * from './portal.js';

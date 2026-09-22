@@ -48,3 +48,10 @@ export const nullPayments: PaymentProvider = {
 export const nullWeather: WeatherProvider = { name: 'none', async forDate() { return null; } };
 export const nullPush: PushProvider = { name: 'none', async send() {} };
 export const nullSms: SmsProvider = { name: 'none', async send() { throw new Error('No SMS provider is connected.'); } };
+
+/** Demo payments: every intent succeeds immediately so the portal "Pay now" flow can be exercised end to end. */
+export const demoPayments: PaymentProvider = {
+  name: 'demo',
+  async createPaymentIntent(input) { return { id: `demo_${input.invoiceId.slice(0, 8)}_${Date.now().toString(36)}`, status: 'succeeded' }; },
+  async verifyWebhook() { return null; },
+};

@@ -227,6 +227,27 @@ export function buildRoutes(s: Services, config: { NODE_ENV: string }): Route[] 
   add('POST', '/v1/invoices/:id/transition', async (r) => s.invoices.transition(requireCtx(r), r.params.id!, b(c.invoiceTransitionBody, r).action));
   add('POST', '/v1/invoices/:id/payments', async (r) => s.invoices.recordPayment(requireCtx(r), r.params.id!, b(c.recordPaymentBody, r)), 201);
   add('DELETE', '/v1/invoices/:id/payments/:paymentId', async (r) => s.invoices.voidPayment(requireCtx(r), r.params.id!, r.params.paymentId!));
+  add('POST', '/v1/invoices/:id/pay', async (r) => s.invoices.payOnline(requireCtx(r), r.params.id!, r.body?.method ?? 'card'));
+
+  // ---- proposals, selections, approvals, portal ----
+  add('GET', '/v1/proposals', async (r) => s.proposals.list(requireCtx(r), q(c.listProposalsQuery, r)));
+  add('GET', '/v1/projects/:id/proposals', async (r) => s.proposals.list(requireCtx(r), { ...q(c.listProposalsQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
+  add('POST', '/v1/projects/:id/proposals', async (r) => s.proposals.create(requireCtx(r), r.params.id!, b(c.createProposalBody, r)), 201);
+  add('GET', '/v1/proposals/:id', async (r) => s.proposals.get(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/proposals/:id', async (r) => s.proposals.update(requireCtx(r), r.params.id!, b(c.updateProposalBody.extend({ refreshSnapshot: z.boolean().optional() }), r)));
+  add('POST', '/v1/proposals/:id/send', async (r) => s.proposals.send(requireCtx(r), r.params.id!, r.body ? b(c.sendProposalBody, r) : {}));
+  add('POST', '/v1/proposals/:id/decide', async (r) => s.proposals.decide(requireCtx(r), r.params.id!, b(c.decideProposalBody, r)));
+  add('POST', '/v1/proposals/:id/void', async (r) => s.proposals.void(requireCtx(r), r.params.id!));
+  add('GET', '/v1/selections', async (r) => s.selections.list(requireCtx(r), q(c.listSelectionsQuery, r)));
+  add('GET', '/v1/projects/:id/selections', async (r) => s.selections.list(requireCtx(r), { ...q(c.listSelectionsQuery.omit({ projectId: true }), r), projectId: r.params.id! }));
+  add('POST', '/v1/projects/:id/selections', async (r) => s.selections.create(requireCtx(r), r.params.id!, b(c.createSelectionBody, r)), 201);
+  add('GET', '/v1/selections/:id', async (r) => s.selections.get(requireCtx(r), r.params.id!));
+  add('PATCH', '/v1/selections/:id', async (r) => s.selections.update(requireCtx(r), r.params.id!, b(c.updateSelectionBody, r)));
+  add('POST', '/v1/selections/:id/release', async (r) => s.selections.release(requireCtx(r), r.params.id!));
+  add('POST', '/v1/selections/:id/decide', async (r) => s.selections.decide(requireCtx(r), r.params.id!, b(c.decideSelectionBody, r)));
+  add('POST', '/v1/selections/:id/void', async (r) => s.selections.void(requireCtx(r), r.params.id!));
+  add('GET', '/v1/approvals', async (r) => s.portal.listApprovals(requireCtx(r), q(c.listApprovalsQuery, r)));
+  add('GET', '/v1/portal/overview', async (r) => s.portal.overview(requireCtx(r)));
 
   // ---- sync ----
   add('GET', '/v1/sync/pull', async (r) => s.sync.pull(requireCtx(r), q(c.syncPullQuery, r)));

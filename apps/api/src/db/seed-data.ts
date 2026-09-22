@@ -172,6 +172,27 @@ export async function seedDemo(services: Services, db: Db, log: (m: string) => v
     await services.invoices.recordPayment(owner, draw2.id, { amountCents: 500_000, method: 'ach', reference: 'ACH 55120', notes: 'Partial' });
     await services.invoices.create(owner, smithProject.id, { title: 'Draw 3 — framing and roofing', billingType: 'progress', issueDate: '2026-10-01', taxBp: 825, retainageBp: 0, notes: '', terms: '', lines: [{ description: 'Framing — 50%', budgetLineId: bl('Framing for addition'), percentBp: 5_000, taxable: false }] });
     log('created invoices and payments');
+
+    // ---- client experience: proposal for Baker, selections for Smith, a homeowner portal account ----
+    const bakerProposal = await services.proposals.create(estCtx, bakerProject.id, { title: 'Family room addition — proposal', introduction: 'Thank you for inviting Ridgeline to price your family room addition. This proposal covers the foundation, framing, envelope and finishes described in the attached plans.', terms: '25% deposit on signing, progress draws monthly, final 10% on substantial completion. Valid 30 days.', validUntil: '2026-10-31' });
+    await services.proposals.send(estCtx, bakerProposal.id, { message: 'Take a look and let us know if you have questions.' });
+    const tile = await services.selections.create(pm, smithProject.id, { category: 'Tile', room: 'Primary bath', name: 'Shower floor tile', description: 'Mosaic for the shower floor; wall tile is already selected.', allowanceCents: 95_000, dueDate: '2026-10-10', budgetLineId: bl('Tile floor and shower'), options: [
+      { name: 'Hex porcelain, matte white', manufacturer: 'Daltile', model: 'Keystones 2"', costCents: 62_000, priceCents: 90_000, isRecommended: true, description: 'Durable, easy to clean.' },
+      { name: 'Carrara marble mosaic', manufacturer: 'MSI', model: 'Carrara 1" hex', costCents: 118_000, priceCents: 165_000, description: 'Natural stone; needs sealing yearly.' },
+      { name: 'Pebble mosaic', manufacturer: 'Island Stone', model: 'Perfect Pebble', costCents: 84_000, priceCents: 120_000, description: '' },
+    ] });
+    await services.selections.release(pm, tile.id);
+    const faucet = await services.selections.create(pm, smithProject.id, { category: 'Plumbing fixtures', room: 'Kitchen', name: 'Kitchen faucet', description: '', allowanceCents: 45_000, dueDate: '2026-10-01', budgetLineId: bl('Plumbing rough-in and trim (sink, DW, pot filler)'), options: [
+      { name: 'Kohler Simplice, stainless', costCents: 28_000, priceCents: 42_000, isRecommended: true, description: '' },
+      { name: 'Brizo Litze, brilliance luxe gold', costCents: 58_000, priceCents: 82_000, description: '' },
+    ] });
+    await services.selections.release(pm, faucet.id);
+    await services.selections.decide(pm, faucet.id, { optionId: faucet.options[0]!.id, decidedByName: 'Jane Smith', note: 'Confirmed by text.' });
+    await services.selections.create(pm, smithProject.id, { category: 'Paint', room: 'Kitchen', name: 'Wall colour', description: 'Two coats, eggshell.', allowanceCents: 0, options: [{ name: 'SW 7015 Repose Gray', costCents: 0, priceCents: 0, isRecommended: true, description: '' }, { name: 'BM OC-17 White Dove', costCents: 0, priceCents: 0, description: '' }] });
+    const clientRole = roles.find((r) => r.key === 'client')!;
+    const portalInvite = await services.organizations.invite(owner, { email: 'jane@example.com', roleId: clientRole.id, firstName: 'Jane', lastName: 'Smith', projectIds: [smithProject.id] });
+    await services.organizations.acceptInvitation({ token: new URL(portalInvite.acceptUrl!).searchParams.get('token')!, password: DEMO_OWNER.password, firstName: 'Jane', lastName: 'Smith' }, null);
+    log('created proposal, selections and the homeowner portal account (jane@example.com)');
     log('seed complete');
     return true;
 }

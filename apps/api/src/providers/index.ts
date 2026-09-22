@@ -2,7 +2,7 @@ import type { Config } from '../config.js';
 import { ConsoleEmailProvider, MemoryEmailProvider, SmtpEmailProvider, type EmailProvider } from './email.js';
 import type { StorageProvider } from './storage.js';
 import { LocalDiskStorage, S3Storage } from './storage.node.js';
-import { nullPayments, nullPush, nullSms, nullWeather, type PaymentProvider, type PushProvider, type SmsProvider, type WeatherProvider } from './integrations.js';
+import { demoPayments, nullPayments, nullPush, nullSms, nullWeather, type PaymentProvider, type PushProvider, type SmsProvider, type WeatherProvider } from './integrations.js';
 
 export interface Providers {
   storage: StorageProvider;
@@ -20,5 +20,5 @@ export function createProviders(cfg: Config, overrides: Partial<Providers> = {})
   const email: EmailProvider = cfg.EMAIL_DRIVER === 'smtp' && cfg.SMTP_URL
     ? new SmtpEmailProvider(cfg.SMTP_URL, cfg.EMAIL_FROM)
     : cfg.EMAIL_DRIVER === 'memory' ? new MemoryEmailProvider() : new ConsoleEmailProvider();
-  return { storage, email, payments: nullPayments, weather: nullWeather, push: nullPush, sms: nullSms, ...overrides };
+  return { storage, email, payments: cfg.PAYMENTS_DRIVER === 'demo' ? demoPayments : nullPayments, weather: nullWeather, push: nullPush, sms: nullSms, ...overrides };
 }

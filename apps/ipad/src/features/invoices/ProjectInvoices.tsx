@@ -57,9 +57,11 @@ export function InvoiceDetail({ project, invoiceId, onClose }: { project: { id: 
   const keys = [...inv(project.id), `/v1/invoices/${invoiceId}`];
   const act = useApiMutation((action: string) => api.mutate('POST', `/v1/invoices/${invoiceId}/transition`, { action }), keys);
   const voidPayment = useApiMutation((paymentId: string) => api.mutate('DELETE', `/v1/invoices/${invoiceId}/payments/${paymentId}`), keys);
+  const payOnline = useApiMutation((method: string) => api.mutate<{ paid: boolean; checkoutUrl?: string }>('POST', `/v1/invoices/${invoiceId}/pay`, { method }), [...keys, '/v1/portal']);
   if (!i) return <Sheet open onClose={onClose} title="Invoice"><Skeleton lines={5} /></Sheet>;
   const canWrite = session.has('invoices.write');
   const canPay = session.has('payments.write');
+  const portal = !!session.membership?.external;
   const payable = ['sent', 'viewed', 'partially_paid', 'overdue'].includes(i.status);
   return <Sheet open onClose={onClose} title={i.number} size="lg" footer={<>
     {canWrite && i.status !== 'void' && i.status !== 'paid' && i.paidCents === 0 && <Button variant="danger" onClick={() => setVoiding(true)}>Void</Button>}
@@ -68,6 +70,7 @@ export function InvoiceDetail({ project, invoiceId, onClose }: { project: { id: 
     {canWrite && i.status === 'draft' && <Button icon="edit" onClick={() => setEditing(true)}>Edit</Button>}
     {canWrite && i.status === 'draft' && <Button variant="primary" icon="send" onClick={() => act.mutateAsync('send').then(() => { toast({ message: 'Invoice sent.', tone: 'success' }); void refetch(); }).catch(errorToast)}>Send to client</Button>}
     {canPay && payable && <Button variant="primary" icon="check" onClick={() => setPaying(true)}>Record payment</Button>}
+    {portal && payable && <Button variant="primary" icon="check" loading={payOnline.isPending} data-testid="pay-now" onClick={() => payOnline.mutateAsync('card').then((r) => { if (r.data.checkoutUrl) window.open(r.data.checkoutUrl, '_blank'); else toast({ message: r.data.paid ? `Paid ${money(i.balanceCents)}. Thank you!` : 'Payment started.', tone: 'success' }); void refetch(); }).catch(errorToast)}>Pay {money(i.balanceCents)} now</Button>}
   </>}>
     <div className="row wrap mb-2"><StatusBadge status={i.status} /><strong style={{ fontSize: 'var(--fs-lg)' }}>{i.title || humanize(i.billingType)}</strong><Badge>{humanize(i.billingType)}</Badge>{i.clientName && <Badge>{i.clientName}</Badge>}</div>
     <div className="subtle mb-4">Issued {dateShort(i.issueDate)} · Due {dateShort(i.dueDate)}{i.sentAt ? ` · Sent ${dateTime(i.sentAt)}` : ''}{i.paidAt ? ` · Paid ${dateTime(i.paidAt)}` : ''}</div>

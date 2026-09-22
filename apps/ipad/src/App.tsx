@@ -20,6 +20,7 @@ const MessagesHome = lazy(() => import('./features/messages/MessagesHome'));
 const DocumentsHome = lazy(() => import('./features/documents/DocumentsHome'));
 const Settings = lazy(() => import('./features/settings/Settings'));
 const FieldMode = lazy(() => import('./features/field/FieldMode'));
+const PortalHome = lazy(() => import('./features/portal/PortalHome'));
 const Estimating = lazy(() => import('./features/estimating/Estimating'));
 const BudgetOverview = lazy(() => import('./features/budget/BudgetOverview'));
 const InvoicesHome = lazy(() => import('./features/invoices/InvoicesHome'));
@@ -39,6 +40,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function HomeRedirect() {
   const session = useSession();
   if (session.membership?.defaultMode === 'field') return <Navigate to="/field" replace />;
+  if (session.membership?.external) return <PortalHome />;
   return <Dashboard />;
 }
 

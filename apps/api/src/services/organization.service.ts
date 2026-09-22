@@ -3,6 +3,7 @@ import { isPermission, type contracts } from '@buildline/core';
 import type { Deps } from './deps.js';
 import { one } from '../lib/rows.js';
 import { invitations, memberships, oneTimeTokens, organizations, projectMembers, projects, rolePermissions, roles, sessions, users } from '../db/schema/index.js';
+import { contacts } from '../db/schema/index.js';
 import { AppError } from '../lib/errors.js';
 import { generateToken, hashToken, hashPassword } from '../lib/crypto.js';
 import type { RequestContext } from '../lib/context.js';
@@ -234,6 +235,9 @@ export class OrganizationService {
       }
       const [already] = await tx.select({ id: memberships.id }).from(memberships).where(and(eq(memberships.userId, userId), eq(memberships.organizationId, inv.organizationId))).limit(1);
       if (!already) await tx.insert(memberships).values({ organizationId: inv.organizationId, userId, roleId: inv.roleId, status: 'active' });
+      // Portal users: link the CRM contact with the same email so approvals and messages carry the contact.
+      const [contact] = await tx.select({ id: contacts.id }).from(contacts).where(and(eq(contacts.organizationId, inv.organizationId), sql`lower(${contacts.email}) = ${inv.email.toLowerCase()}`)).limit(1);
+      if (contact) await tx.update(contacts).set({ portalUserId: userId, updatedAt: sql`now()` }).where(eq(contacts.id, contact.id));
       for (const projectId of inv.projectIds) {
         const [p] = await tx.select({ id: projects.id }).from(projects).where(and(eq(projects.id, projectId), eq(projects.organizationId, inv.organizationId))).limit(1);
         if (p) await tx.insert(projectMembers).values({ organizationId: inv.organizationId, projectId, userId, accessLevel: 'member', createdBy: userId }).onConflictDoNothing();

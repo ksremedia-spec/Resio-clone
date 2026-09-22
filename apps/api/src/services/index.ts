@@ -18,6 +18,9 @@ import { BudgetService } from './budget.service.js';
 import { ProcurementService } from './procurement.service.js';
 import { ChangeOrderService } from './changeOrder.service.js';
 import { InvoiceService } from './invoice.service.js';
+import { ProposalService } from './proposal.service.js';
+import { SelectionService } from './selection.service.js';
+import { PortalService } from './portal.service.js';
 import { registerSyncHandlers } from './sync.handlers.js';
 
 export function createServices(deps: Deps) {
@@ -40,7 +43,10 @@ export function createServices(deps: Deps) {
   const procurement = new ProcurementService(deps, activity, notifications, documents);
   const changeOrders = new ChangeOrderService(deps, activity, notifications, documents);
   const invoices = new InvoiceService(deps, activity, notifications, documents);
-  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices };
+  const proposals = new ProposalService(deps, activity, notifications, documents, estimates);
+  const selections = new SelectionService(deps, activity, notifications, changeOrders);
+  const portal = new PortalService(deps, projects);
+  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices, proposals, selections, portal };
   registerSyncHandlers(services);
   return services;
 }

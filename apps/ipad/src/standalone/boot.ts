@@ -10,7 +10,7 @@ import { drizzleFromPglite, migratePglite } from '../../../api/src/db/pglite-sha
 import { loadConfig } from '../../../api/src/config';
 import { createServices } from '../../../api/src/services/index';
 import { MemoryEmailProvider } from '../../../api/src/providers/email';
-import { nullPayments, nullPush, nullSms, nullWeather } from '../../../api/src/providers/integrations';
+import { demoPayments, nullPush, nullSms, nullWeather } from '../../../api/src/providers/integrations';
 import { seedDemo } from '../../../api/src/db/seed-data';
 import { BrowserStorage } from './storage';
 import { installFetchInterceptor } from './router';
@@ -30,7 +30,7 @@ export async function bootStandalone(onStage: (stage: BootStage, detail?: string
   const storage = new BrowserStorage();
   await storage.init();
   const email = new MemoryEmailProvider();
-  const services = createServices({ db, config, providers: { storage, email, payments: nullPayments, weather: nullWeather, push: nullPush, sms: nullSms }, log: console });
+  const services = createServices({ db, config, providers: { storage, email, payments: demoPayments, weather: nullWeather, push: nullPush, sms: nullSms }, log: console });
   onStage('demo', 'Creating the demo company');
   await seedDemo(services, db);
   installFetchInterceptor(services, config);

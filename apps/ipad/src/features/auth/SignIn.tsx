@@ -11,6 +11,7 @@ const DEMO_USERS = [
   { label: 'Field supervisor', email: 'rosa@demo.buildline.app' },
   { label: 'Field crew', email: 'jake@demo.buildline.app' },
   { label: 'Office / finance', email: 'tom@demo.buildline.app' },
+  { label: 'Homeowner (client portal)', email: 'jane@example.com' },
 ];
 
 export default function SignIn() {

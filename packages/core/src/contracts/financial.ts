@@ -101,7 +101,7 @@ export const coLineInput = z.object({ id: uuid.optional(), budgetLineId: uuid.nu
 export const createChangeOrderBody = z.object({ title: shortText, description: longText.default(''), reason: z.string().max(80).nullable().optional(), scheduleImpactDays: z.number().int().min(-365).max(365).default(0), lines: z.array(coLineInput).max(200).default([]), attachmentDocumentIds: z.array(uuid).max(20).optional() });
 export const updateChangeOrderBody = patchOf(createChangeOrderBody);
 export const sendChangeOrderBody = z.object({ message: z.string().max(2000).optional() });
-export const decideChangeOrderBody = z.object({ decision: z.enum(['approved', 'declined']), decidedByName: shortText, note: z.string().max(1000).optional(), signatureDocumentId: uuid.optional() });
+export const decideChangeOrderBody = z.object({ decision: z.enum(['approved', 'declined']), decidedByName: shortText.optional(), note: z.string().max(1000).optional(), signatureDocumentId: uuid.optional() });
 export const listChangeOrdersQuery = paginationQuery.extend({ projectId: uuid.optional(), status: z.enum([...CO_STATUSES, 'open', 'all']).default('all') });
 
 // ---------- invoices & payments ----------

@@ -28,6 +28,9 @@ const NAV: Array<{ key: keyof typeof NAV_PERMISSIONS; to: string; label: string;
   { key: 'settings', to: '/settings', label: 'Settings', icon: 'settings', section: 'Company' },
 ];
 
+/** External (client/vendor) accounts get a short menu: their home, projects, messages, documents, settings. */
+const PORTAL_KEYS = new Set(['dashboard', 'projects', 'invoices', 'messages', 'documents', 'settings']);
+
 export function AppShell({ children }: { children: ReactNode }) {
   const session = useSession();
   const compact = useIsCompact();
@@ -45,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="sidebar-brand"><img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" /> Buildline{compact && <button className="btn quiet icon" style={{ marginLeft: 'auto' }} aria-label="Close menu" onClick={() => setOpen(false)}><Icon name="close" /></button>}</div>
       <div className="sidebar-nav">
         {session.membership?.defaultMode === 'field' && <NavLink to="/field" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon name="hardhat" /> Field mode</NavLink>}
-        {NAV.filter((n) => { const p = NAV_PERMISSIONS[n.key]; return !p || session.has(p); }).map((n) => (
+        {NAV.filter((n) => { const p = NAV_PERMISSIONS[n.key]; if (session.membership?.external && !PORTAL_KEYS.has(n.key)) return false; return !p || session.has(p); }).map((n) => n.key === 'dashboard' && session.membership?.external ? { ...n, label: 'Home', section: undefined } : n).map((n) => (
           <div key={n.key}>
             {n.section && <div className="sidebar-section">{n.section}</div>}
             <NavLink to={n.to} end={n.to === '/'} aria-label={n.label} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon name={n.icon} />{n.label}{n.shortcut && !compact && <span className="kbd" aria-hidden="true">⌘{n.shortcut}</span>}</NavLink>

@@ -127,5 +127,5 @@ export function serializeClient(row: typeof clients.$inferSelect, extra: { proje
 }
 
 export function serializeContact(row: typeof contacts.$inferSelect): contracts.Contact {
-  return { id: row.id, organizationId: row.organizationId, createdAt: row.createdAt, updatedAt: row.updatedAt, createdBy: row.createdBy, updatedBy: row.updatedBy, version: row.version, clientId: row.clientId, vendorId: row.vendorId, firstName: row.firstName, lastName: row.lastName, email: row.email, phone: row.phone, title: row.title, isPrimary: row.isPrimary, notes: row.notes };
+  return { id: row.id, organizationId: row.organizationId, createdAt: row.createdAt, updatedAt: row.updatedAt, createdBy: row.createdBy, updatedBy: row.updatedBy, version: row.version, clientId: row.clientId, vendorId: row.vendorId, firstName: row.firstName, lastName: row.lastName, email: row.email, phone: row.phone, title: row.title, isPrimary: row.isPrimary, notes: row.notes, portalUserId: row.portalUserId };
 }

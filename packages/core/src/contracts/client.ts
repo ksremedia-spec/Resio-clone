@@ -11,6 +11,7 @@ export const contactSchema = auditFields.extend({
   title: z.string().nullable(),
   isPrimary: z.boolean(),
   notes: z.string(),
+  portalUserId: uuid.nullable().optional(),
 });
 export type Contact = z.infer<typeof contactSchema>;
 

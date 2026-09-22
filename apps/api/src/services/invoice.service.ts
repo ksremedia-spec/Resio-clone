@@ -11,6 +11,7 @@ import type { DocumentService } from './document.service.js';
 import { decodeCursor, encodeCursor, page } from '../lib/pagination.js';
 import { nextNumber } from '../lib/numbering.js';
 import { projectTeamUserIds } from '../lib/recipients.js';
+import { isClientPortal } from '../lib/portal.js';
 
 type InvoiceRow = typeof invoices.$inferSelect;
 const OPEN = ['sent', 'viewed', 'partially_paid', 'overdue'] as const;
@@ -32,6 +33,7 @@ export class InvoiceService {
     if (query.projectId) { await ctx.requireProjectAccess(db, query.projectId, { allowArchived: true }); conditions.push(eq(invoices.projectId, query.projectId)); }
     else { const visible = await ctx.visibleProjectIds(db); if (visible) conditions.push(visible.length ? inArray(invoices.projectId, visible) : sql`false`); }
     if (query.clientId) conditions.push(eq(invoices.clientId, query.clientId));
+    if (ctx.membership.external) conditions.push(inArray(invoices.status, ['sent', 'viewed', 'partially_paid', 'paid', 'overdue']));
     if (query.status === 'open') conditions.push(inArray(invoices.status, [...OPEN]));
     else if (query.status === 'overdue') conditions.push(and(inArray(invoices.status, ['sent', 'viewed', 'partially_paid', 'overdue']), sql`${invoices.dueDate} < current_date`)!);
     else if (query.status !== 'all') conditions.push(eq(invoices.status, query.status));
@@ -51,6 +53,11 @@ export class InvoiceService {
     const [r] = await db.select({ i: invoices, projectName: projects.name, clientName: clients.displayName }).from(invoices).innerJoin(projects, eq(projects.id, invoices.projectId)).leftJoin(clients, eq(clients.id, invoices.clientId)).where(and(eq(invoices.id, id), eq(invoices.organizationId, ctx.organizationId))).limit(1);
     if (!r) throw AppError.notFound('Invoice');
     await ctx.requireProjectAccess(db, r.i.projectId, { allowArchived: true });
+    if (ctx.membership.external && ['draft', 'void'].includes(r.i.status)) throw AppError.notFound('Invoice');
+    if (isClientPortal(ctx) && r.i.status === 'sent') {
+      await db.update(invoices).set({ status: 'viewed', viewedAt: sql`now()`, updatedAt: sql`now()` }).where(and(eq(invoices.id, id), eq(invoices.status, 'sent')));
+      r.i.status = 'viewed';
+    }
     const [lines, pays, attachments] = await Promise.all([this.linesFor(db, [id]), this.paymentsFor(db, [id]), this.documents.attachmentsFor(db, ctx, 'invoice', [id])]);
     return serializeInvoice(r.i, r.projectName, r.clientName, lines.get(id) ?? [], pays.get(id) ?? [], (attachments.get(id) ?? []).map((a) => a.document));
   }
@@ -236,12 +243,31 @@ export class InvoiceService {
     await tx.update(invoices).set({ paidCents: paid, status, paidAt: status === 'paid' ? sql`now()` : null, updatedAt: sql`now()`, updatedBy: ctx.userId, version: sql`${invoices.version} + 1` }).where(eq(invoices.id, inv.id));
   }
 
-  /** Start an online payment through the connected provider (used by the client portal). */
-  async createPaymentIntent(ctx: RequestContext, id: string, method: 'card' | 'ach') {
-    ctx.require('payments.write');
+  /**
+   * Online payment from the client portal (or the office on the client's behalf). The provider
+   * either settles immediately (demo) or hands back a client secret / checkout URL to finish in the UI.
+   */
+  async payOnline(ctx: RequestContext, id: string, method: 'card' | 'ach'): Promise<{ id: string; status: string; clientSecret?: string; checkoutUrl?: string; paid: boolean }> {
+    if (!isClientPortal(ctx)) ctx.require('payments.write');
     const inv = await this.get(ctx, id);
     if (!PAYABLE.includes(inv.status as any)) throw AppError.conflict('This invoice is not open for payment.');
-    return this.deps.providers.payments.createPaymentIntent({ organizationId: ctx.organizationId, invoiceId: id, amountCents: inv.balanceCents, currency: 'USD', method, payerEmail: ctx.user.email });
+    if (inv.balanceCents <= 0) throw AppError.conflict('This invoice is already paid.');
+    const provider = this.deps.providers.payments;
+    if (provider.name === 'none') throw AppError.conflict('Online payments are not set up for this company yet. Pay by check or bank transfer instead.');
+    const intent = await provider.createPaymentIntent({ organizationId: ctx.organizationId, invoiceId: id, amountCents: inv.balanceCents, currency: 'USD', method, payerEmail: ctx.user.email });
+    if (intent.status === 'succeeded') await this.settleOnline(ctx, inv, intent.id, method);
+    return { id: intent.id, status: intent.status, clientSecret: intent.clientSecret, checkoutUrl: intent.checkoutUrl, paid: intent.status === 'succeeded' };
+  }
+
+  private async settleOnline(ctx: RequestContext, inv: contracts.Invoice, providerPaymentId: string, method: string) {
+    await this.deps.db.transaction(async (tx) => {
+      const [row] = await tx.select().from(invoices).where(eq(invoices.id, inv.id)).limit(1);
+      await tx.insert(payments).values({ organizationId: ctx.organizationId, projectId: inv.projectId, invoiceId: inv.id, direction: 'in', method, status: 'completed', amountCents: inv.balanceCents, feeCents: 0, receivedAt: new Date().toISOString(), reference: providerPaymentId, notes: 'Paid online', provider: this.deps.providers.payments.name, providerPaymentId, createdBy: ctx.userId, updatedBy: ctx.userId });
+      await this.applyPaidTotals(tx, ctx, row!, row!.paidCents + inv.balanceCents);
+      await this.activity.record(tx, ActivityService.actorFrom(ctx), { projectId: inv.projectId, verb: 'paid', objectType: 'invoice', objectId: inv.id, objectLabel: inv.number, clientVisible: true, metadata: { amountCents: inv.balanceCents, method, online: true } });
+      const team = await projectTeamUserIds(tx, ctx.organizationId, inv.projectId);
+      await this.notifications.notify(tx, { organizationId: ctx.organizationId, userIds: team, excludeUserId: ctx.userId, kind: 'invoice.paid', title: `Invoice ${inv.number} paid online`, body: `${ctx.actorName} paid ${(inv.balanceCents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} by ${method}.`, projectId: inv.projectId, objectType: 'invoice', objectId: inv.id, link: `/projects/${inv.projectId}/invoices/${inv.id}` });
+    });
   }
 }
 

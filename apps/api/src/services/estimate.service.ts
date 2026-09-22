@@ -140,7 +140,13 @@ export class EstimateService {
   /** Lock the estimate, create or refresh the budget, and (optionally) set the contract value. */
   async lock(ctx: RequestContext, projectId: string, opts: { applyContractValue: boolean }): Promise<contracts.Estimate> {
     ctx.require('estimates.write');
-    await this.deps.db.transaction(async (tx) => {
+    await this.deps.db.transaction(async (tx) => { await this.lockWithin(tx, ctx, projectId, opts); });
+    return this.getForProject(ctx, projectId);
+  }
+
+  /** The locking work itself, without the permission gate: proposals lock the estimate when a client accepts. */
+  async lockWithin(tx: DbOrTx, ctx: RequestContext, projectId: string, opts: { applyContractValue: boolean }): Promise<void> {
+    {
       await ctx.requireProjectAccess(tx, projectId);
       const [est] = await tx.select().from(estimates).where(and(eq(estimates.projectId, projectId), isNull(estimates.archivedAt))).orderBy(asc(estimates.createdAt)).limit(1);
       if (!est) throw AppError.notFound('Estimate');
@@ -173,8 +179,7 @@ export class EstimateService {
       await this.activity.record(tx, ActivityService.actorFrom(ctx), { projectId, verb: 'updated', objectType: 'budget', objectId: budget!.id, objectLabel: 'from locked estimate' });
       const managers = await tx.execute(sql`select user_id from project_members where project_id = ${projectId} and user_id is not null`);
       await this.notifications.notify(tx, { organizationId: ctx.organizationId, userIds: (Array.isArray(managers) ? managers : (managers as any).rows ?? []).map((m: any) => m.user_id), excludeUserId: ctx.userId, kind: 'system', title: `Estimate locked for ${project?.name ?? 'project'}`, body: `${ctx.actorName} locked the estimate; the budget is now live.`, projectId, objectType: 'budget', objectId: budget!.id, link: `/projects/${projectId}/budget` });
-    });
-    return this.getForProject(ctx, projectId);
+    }
   }
 
   async unlock(ctx: RequestContext, projectId: string): Promise<contracts.Estimate> {
