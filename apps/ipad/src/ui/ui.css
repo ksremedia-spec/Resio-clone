@@ -291,3 +291,11 @@ p { margin: 0; }
 .clock.running { border-color: var(--brand); background: var(--brand-soft); }
 .clock.on-break { border-color: var(--warning); background: var(--warning-soft); }
 .clock-time { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1.1; }
+
+/* ---- assistant ---- */
+.chat { display: flex; flex-direction: column; gap: var(--sp-2); min-height: 100%; }
+.chat .msg .bubble { max-width: 85%; }
+.action-card { border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--sp-3); background: var(--bg-sunken); display: flex; flex-direction: column; gap: var(--sp-2); color: var(--fg); }
+.thinking::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
+@keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+@media (prefers-reduced-motion: reduce) { .thinking::after { animation: none; content: '…'; } }

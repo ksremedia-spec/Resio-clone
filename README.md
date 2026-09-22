@@ -76,6 +76,13 @@ schedule cascading and conflicts, daily logs, messaging and offline sync.
 ## Status
 
 Phases 1 (foundation), 2 (project core), 3 (financial core), 4 (client
-experience) and 5 (time clock, payroll export, bid requests, vendor portal) are
-implemented with tests. Phases 6–7 (AI,
-advanced) have their database schema in place and are the next slices.
+experience), 5 (time clock, payroll export, bid requests, vendor portal) and
+6 (AI assistant) are implemented with tests. Phase 7 (reports, leads,
+automations, full sync) is next.
+
+The AI assistant works two ways. With `ANTHROPIC_API_KEY` set it uses Claude
+(`AI_MODEL`, default `claude-sonnet-5`) through the Messages API with tool
+use. Without a key it falls back to a built-in rule-based provider that
+understands everyday questions, so the feature and its tests need no network.
+Either way, every tool runs with the signed-in person's own permissions, and
+anything that writes data is staged for a tap-to-confirm before it happens.

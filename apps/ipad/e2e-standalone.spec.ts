@@ -23,6 +23,15 @@ test('standalone: boots the in-page backend, signs in, creates and lists data', 
   await expect(page.getByTestId('budget-line').first()).toBeVisible();
   await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Invoices' }).click();
   await expect(page.getByTestId('invoice-row').first()).toBeVisible();
+  // The AI assistant runs through the in-page backend too: a read answer, then a staged write.
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'AI Assistant', exact: true }).click();
+  await page.getByTestId('ai-composer').fill("What's overdue on Smith Residence?");
+  await page.getByTestId('ai-send').click();
+  await expect(page.getByTestId('ai-message').last()).toContainText(/overdue|Nothing is overdue/, { timeout: 30_000 });
+  await page.getByTestId('ai-composer').fill('Create a to-do "Assistant-made item" on Smith Residence due tomorrow');
+  await page.getByTestId('ai-send').click();
+  await page.getByTestId('pending-action').last().getByTestId('confirm-action').click();
+  await expect(page.getByTestId('pending-action').last()).toContainText('Done');
   await page.reload();
-  await expect(page.getByTestId('demo-owner').or(page.getByRole('heading', { name: /Good (morning|afternoon|evening)|Smith Residence/ }))).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('demo-owner').or(page.getByRole('heading', { name: /Good (morning|afternoon|evening)|Smith Residence|AI Assistant/ }))).toBeVisible({ timeout: 60_000 });
 });

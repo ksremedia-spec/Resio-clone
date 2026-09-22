@@ -16,3 +16,4 @@ export { PERMISSIONS as PERMISSIONS_LIST } from '../permissions.js';
 export * from './financial.js';
 export * from './portal.js';
 export * from './field.js';
+export * from './ai.js';

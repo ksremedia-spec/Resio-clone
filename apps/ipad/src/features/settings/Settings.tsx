@@ -16,6 +16,7 @@ export default function Settings() {
     ...(session.has('org.manage') ? [{ to: 'company', label: 'Company' }] : []),
     ...(session.has('members.invite') || session.has('members.manage') ? [{ to: 'members', label: 'Members & invitations' }] : []),
     ...(session.has('roles.manage') ? [{ to: 'roles', label: 'Roles & permissions' }] : []),
+    ...(session.has('ai.use') ? [{ to: 'ai', label: 'AI assistant' }] : []),
   ];
   return <>
     <Toolbar title="Settings" leading={<MenuToggle />}><ToolbarActions /></Toolbar>
@@ -31,6 +32,7 @@ export default function Settings() {
           <Route path="company" element={<CompanySettings />} />
           <Route path="members" element={<MembersSettings />} />
           <Route path="roles" element={<RolesSettings />} />
+          <Route path="ai" element={<AiSettings />} />
         </Routes>
       </div></div>
     </div>
@@ -226,4 +228,45 @@ function RoleSheet({ role, roles, onClose }: { role: contracts.Role | null; role
       <ConfirmDialog open={deleting} onClose={() => setDeleting(false)} danger title="Delete role?" confirmLabel="Delete" message="Members must be reassigned before a role can be deleted." onConfirm={async () => { try { await api.mutate('DELETE', `/v1/roles/${role!.id}`); onClose(); } catch (e) { errorToast(e); throw e; } }} />
     </Sheet>
   );
+}
+
+const STANDALONE = import.meta.env.VITE_STANDALONE === '1';
+const KEY_STORAGE = 'buildline.anthropicKey';
+
+/** Shows which brain the assistant is using. In the demo build the key lives only in this browser and is sent straight to Anthropic. */
+function AiSettings() {
+  const toast = useToast();
+  const { data: status } = useResource<contracts.AiStatus>('/v1/ai/status');
+  const [key, setKey] = useState(() => { try { return STANDALONE ? localStorage.getItem(KEY_STORAGE) ?? '' : ''; } catch { return ''; } });
+  const [saved, setSaved] = useState(false);
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    try { if (key.trim()) localStorage.setItem(KEY_STORAGE, key.trim()); else localStorage.removeItem(KEY_STORAGE); } catch { toast({ message: 'This browser blocks saved settings.', tone: 'error' }); return; }
+    setSaved(true);
+    toast({ message: key.trim() ? 'Key saved. Reloading so the assistant can use it…' : 'Key removed. Reloading…', tone: 'success' });
+    setTimeout(() => window.location.reload(), 800);
+  };
+  return <div className="stack" style={{ maxWidth: 640 }}>
+    <h2>AI assistant</h2>
+    <Card>
+      <div className="stack-sm">
+        <div className="row"><strong className="grow">Status</strong>{status ? <Badge tone={status.provider === 'rules' ? 'warning' : 'success'}>{status.provider === 'rules' ? 'Built-in answers (no AI model)' : `Connected · ${status.model}`}</Badge> : <Skeleton lines={1} />}</div>
+        <p className="muted">The assistant only ever sees what you can see: every fact comes from a tool that runs with your own permissions, and anything that changes data waits for you to confirm it.</p>
+        {status && <p className="subtle">{status.tools.length} tools available to you: {status.tools.map((t) => t.name.replace(/_/g, ' ')).join(', ')}.</p>}
+      </div>
+    </Card>
+    {STANDALONE ? <Card>
+      <form className="stack-sm" onSubmit={save}>
+        <strong>Connect Claude (optional)</strong>
+        <p className="muted">Paste an Anthropic API key to let the assistant answer in natural language. In this demo the key is kept in this browser only and requests go directly to Anthropic, so it never passes through a server we run. Leave it empty to keep the built-in answers.</p>
+        <Field label="Anthropic API key"><Input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="sk-ant-…" autoComplete="off" data-testid="ai-key" /></Field>
+        <div className="row"><Button type="submit" variant="primary" disabled={saved}>Save and reload</Button>{key && <Button type="button" onClick={() => { setKey(''); }}>Clear</Button>}</div>
+      </form>
+    </Card> : <Card>
+      <div className="stack-sm">
+        <strong>Connecting an AI model</strong>
+        <p className="muted">Your administrator sets the model on the server (the <code>ANTHROPIC_API_KEY</code> and <code>AI_MODEL</code> settings). Without a key the assistant still answers everyday questions using its built-in understanding of your projects.</p>
+      </div>
+    </Card>}
+  </div>;
 }

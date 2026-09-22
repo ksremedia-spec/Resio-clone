@@ -26,7 +26,9 @@ export async function bootStandalone(onStage: (stage: BootStage, detail?: string
   await migratePglite(client, [{ name: '0000_init.sql', body: init0 }, { name: '0001_security.sql', body: init1 }]);
   const db = drizzleFromPglite(client);
   onStage('services');
-  const config = loadConfig({ NODE_ENV: 'development', DATABASE_URL: 'pglite://browser', APP_URL: window.location.origin + window.location.pathname, API_URL: window.location.origin, APP_SECRET: 'standalone-demo-secret-not-for-production', EMAIL_DRIVER: 'memory', STORAGE_DRIVER: 'local' });
+  // An Anthropic key pasted in Settings → AI assistant lives only in this browser and is sent straight to Anthropic.
+  let anthropicKey: string | undefined; try { anthropicKey = localStorage.getItem('buildline.anthropicKey') ?? undefined; } catch { /* storage blocked */ }
+  const config = loadConfig({ NODE_ENV: 'development', DATABASE_URL: 'pglite://browser', APP_URL: window.location.origin + window.location.pathname, API_URL: window.location.origin, APP_SECRET: 'standalone-demo-secret-not-for-production', EMAIL_DRIVER: 'memory', STORAGE_DRIVER: 'local', ANTHROPIC_API_KEY: anthropicKey || undefined });
   const storage = new BrowserStorage();
   await storage.init();
   const email = new MemoryEmailProvider();

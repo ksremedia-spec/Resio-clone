@@ -278,6 +278,15 @@ export function buildRoutes(s: Services, config: { NODE_ENV: string }): Route[] 
   add('GET', '/v1/portal/vendor/overview', async (r) => s.bids.vendorOverview(requireCtx(r)));
   add('POST', '/v1/purchase-orders/:id/acknowledge', async (r) => s.bids.acknowledgePurchaseOrder(requireCtx(r), r.params.id!));
 
+  // ---- AI assistant ----
+  add('GET', '/v1/ai/status', async (r) => s.ai.status(requireCtx(r)));
+  add('GET', '/v1/ai/conversations', async (r) => s.ai.listConversations(requireCtx(r)));
+  add('POST', '/v1/ai/conversations', async (r) => s.ai.create(requireCtx(r), r.body ? b(c.createConversationBody, r) : {}), 201);
+  add('GET', '/v1/ai/conversations/:id', async (r) => s.ai.get(requireCtx(r), r.params.id!));
+  add('DELETE', '/v1/ai/conversations/:id', async (r) => { await s.ai.remove(requireCtx(r), r.params.id!); return ok; });
+  add('POST', '/v1/ai/conversations/:id/messages', async (r) => s.ai.send(requireCtx(r), r.params.id!, b(c.sendAiMessageBody, r).content));
+  add('POST', '/v1/ai/conversations/:id/confirm', async (r) => s.ai.confirm(requireCtx(r), r.params.id!, b(c.confirmAiActionBody, r)));
+
   // ---- sync ----
   add('GET', '/v1/sync/pull', async (r) => s.sync.pull(requireCtx(r), q(c.syncPullQuery, r)));
   add('POST', '/v1/sync/push', async (r) => ({ results: await s.sync.push(requireCtx(r), b(c.syncPushBody, r).mutations) }));

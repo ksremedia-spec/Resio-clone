@@ -23,6 +23,7 @@ import { SelectionService } from './selection.service.js';
 import { PortalService } from './portal.service.js';
 import { TimeService } from './time.service.js';
 import { BidService } from './bid.service.js';
+import { AiService } from './ai.service.js';
 import { registerSyncHandlers } from './sync.handlers.js';
 
 export function createServices(deps: Deps) {
@@ -50,7 +51,9 @@ export function createServices(deps: Deps) {
   const portal = new PortalService(deps, projects);
   const time = new TimeService(deps, activity, notifications);
   const bids = new BidService(deps, activity, notifications, documents, procurement);
-  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices, proposals, selections, portal, time, bids };
+  const ai = new AiService(deps, activity);
+  const services = { activity, notifications, auth, organizations, clients, projects, documents, dashboard, search, sync, schedule, dailyLogs, messages, catalog, estimates, budget, procurement, changeOrders, invoices, proposals, selections, portal, time, bids, ai };
+  ai.attach(services);
   registerSyncHandlers(services);
   return services;
 }

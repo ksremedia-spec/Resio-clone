@@ -105,6 +105,21 @@ Field and vendors (new):
   only their purchase orders (acknowledge one), the bid request they were
   invited to (submit a price), their scheduled tasks and shared documents.
 
+AI assistant (new):
+
+* **AI Assistant** in the menu: ask "What's overdue on Smith Residence?",
+  "How is the Baker budget?", "Any unpaid invoices?", "What needs my
+  approval?". Answers come from your live data; each fact shows the tool that
+  fetched it.
+* Ask it to do something: "Create a to-do 'Confirm the countertop template
+  date' on Smith Residence due tomorrow". It shows what it is about to do and
+  waits for you to tap **Confirm**. Cancel and nothing happens.
+* Sign in as Jake (field crew) and ask about a budget: he is told he doesn't
+  have access, because the assistant can only see what he can see.
+* Settings → **AI assistant** shows whether a real model is connected. In the
+  demo you can paste an Anthropic API key there to get natural-language
+  answers; without one the built-in understanding still works.
+
 ## Starting over
 
 Stop the app (close the Terminal window), delete the folder `data/demo` inside
@@ -118,7 +133,7 @@ notifications, search, activity history, offline queue, cost catalog and cost
 codes, estimates, budgets and job costing, change orders, purchase orders and
 bills, invoices and payments, vendors, proposals, selections, the client portal
 with approvals and online payment, time clock with approvals and payroll export,
-bid requests and the vendor portal.
+bid requests and the vendor portal, the AI assistant with confirm-before-acting.
 
-Not built yet: the AI assistant, leads, reports and automations.
-Those menu items show a "coming in Phase N" note.
+Not built yet: leads, reports and automations.
+Those menu items show a "coming in Phase 7" note.

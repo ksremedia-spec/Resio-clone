@@ -23,6 +23,7 @@ const FieldMode = lazy(() => import('./features/field/FieldMode'));
 const PortalHome = lazy(() => import('./features/portal/PortalHome'));
 const VendorHome = lazy(() => import('./features/portal/VendorHome'));
 const TimePage = lazy(() => import('./features/time/TimePage'));
+const Assistant = lazy(() => import('./features/assistant/Assistant'));
 const Estimating = lazy(() => import('./features/estimating/Estimating'));
 const BudgetOverview = lazy(() => import('./features/budget/BudgetOverview'));
 const InvoicesHome = lazy(() => import('./features/invoices/InvoicesHome'));
@@ -81,7 +82,8 @@ export function App() {
             <Route path="invoices" element={<InvoicesHome />} />
             <Route path="invoices/:invoiceId" element={<InvoicesHome />} />
             <Route path="reports" element={<ComingSoon title="Reports" phase="Phase 7" />} />
-            <Route path="assistant" element={<ComingSoon title="AI Assistant" phase="Phase 6" />} />
+            <Route path="assistant" element={<Assistant />} />
+            <Route path="assistant/:conversationId" element={<Assistant />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense></AppShell></RequireAuth>} />

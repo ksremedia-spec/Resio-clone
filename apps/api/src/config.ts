@@ -25,6 +25,10 @@ const schema = z.object({
   EMAIL_FROM: z.string().default('Buildline <no-reply@buildline.local>'),
   /** 'demo' settles card/ACH payments instantly (development, demos, tests); 'none' disables online payment. */
   PAYMENTS_DRIVER: z.enum(['none', 'demo']).default('demo'),
+  /** AI assistant: with an Anthropic key the assistant uses the model; without one a rule-based helper answers from the same tools. */
+  ANTHROPIC_API_KEY: z.string().optional(),
+  AI_MODEL: z.string().default('claude-sonnet-5'),
+  AI_PROVIDER: z.enum(['auto', 'anthropic', 'rules']).default('auto'),
   RATE_LIMIT_MAX: z.coerce.number().int().default(300),
   MAX_UPLOAD_MB: z.coerce.number().int().default(200),
   LOG_LEVEL: z.string().default('info'),
