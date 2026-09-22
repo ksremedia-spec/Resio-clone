@@ -32,3 +32,18 @@ test.describe('AI assistant', () => {
     await expect(page.getByTestId('ai-message').last()).toContainText(/don't have access/, { timeout: 20_000 });
   });
 });
+
+test.describe('AI assistant on a narrow screen', () => {
+  test.use({ viewport: { width: 820, height: 1180 } });
+  test('New conversation opens the composer and a first question gets an answer', async ({ page }) => {
+    await signIn(page);
+    await nav(page, 'AI Assistant');
+    await page.getByTestId('new-conversation').click();
+    await expect(page.getByTestId('ai-composer')).toBeVisible();
+    await page.getByTestId('ai-composer').fill('Which projects are active?');
+    await page.getByTestId('ai-send').click();
+    await expect(page.getByTestId('ai-message').last()).toContainText(/Smith Residence|project/i, { timeout: 20_000 });
+    await page.getByRole('button', { name: 'Back' }).click();
+    await expect(page.getByTestId('conversation-row').first()).toContainText('Which projects');
+  });
+});

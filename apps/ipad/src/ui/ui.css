@@ -78,6 +78,9 @@ p { margin: 0; }
 .stat .label { font-size: var(--fs-xs); color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.04em; }
 .stat .value { font-size: var(--fs-xl); font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .stat.warn .value { color: var(--warning); } .stat.danger .value { color: var(--danger); } .stat.ok .value { color: var(--success); }
+.stat.clickable { text-align: left; width: 100%; border: 1px solid transparent; cursor: pointer; transition: border-color 120ms, background 120ms; }
+.stat.clickable:hover, .stat.clickable:focus-visible { border-color: var(--brand); background: var(--brand-soft); }
+.stat .hint { font-size: var(--fs-xs); color: var(--fg-3); margin-top: 2px; }
 
 /* ---------- Buttons ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: var(--touch); padding: 0 var(--sp-4); border-radius: var(--radius-md); border: 1px solid transparent; font-weight: 600; background: var(--bg-elev); border-color: var(--line-strong); color: var(--fg); white-space: nowrap; }
@@ -311,3 +314,6 @@ p { margin: 0; }
 .timeline-item .dot.brand { background: var(--brand); }
 .rule-row { display: grid; grid-template-columns: 110px 1fr; gap: var(--sp-2) var(--sp-3); align-items: center; }
 .rule-row .label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg-3); font-weight: 600; }
+.card.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { 0% { box-shadow: 0 0 0 3px var(--brand); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .card.flash { animation: none; box-shadow: 0 0 0 3px var(--brand); } }

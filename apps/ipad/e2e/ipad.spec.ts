@@ -83,6 +83,16 @@ test.describe('iPad workflows', () => {
     await expect(page.getByText('permanent record')).toBeVisible();
   });
 
+  test('dashboard summary pills open the matching screen', async ({ page }) => {
+    await signIn(page);
+    await page.getByTestId('stat').filter({ hasText: 'Unpaid invoices' }).click();
+    await expect(page.getByRole('heading', { name: 'Invoices' })).toBeVisible();
+    await nav(page, 'Dashboard');
+    await page.getByTestId('stat').filter({ hasText: 'Overdue tasks' }).click();
+    await expect(page.getByRole('heading', { name: 'Tasks' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Everyone' })).toHaveAttribute('aria-selected', 'true');
+  });
+
   test('task manager completes a task with one tap and reflects on the dashboard', async ({ page }) => {
     await signIn(page);
     await nav(page, 'Tasks');

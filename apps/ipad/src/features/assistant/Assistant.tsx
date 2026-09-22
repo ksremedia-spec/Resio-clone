@@ -13,20 +13,25 @@ export default function Assistant() {
   const navigate = useNavigate();
   const compact = useIsCompact();
   const [params] = useSearchParams();
+  const composing = params.get('new') === '1';
+  const showChat = !compact || !!conversationId || composing;
   const { data: list, refetch: refetchList } = useResource<contracts.AiConversation[]>('/v1/ai/conversations');
   const { data: status } = useResource<contracts.AiStatus>('/v1/ai/status');
   const sidebar = (
     <div className="split-list">
-      <div style={{ padding: 'var(--sp-3) var(--sp-4)' }}><Button variant="primary" icon="plus" onClick={() => navigate('/assistant')} style={{ width: '100%' }}>New conversation</Button></div>
+      <div style={{ padding: 'var(--sp-3) var(--sp-4)' }}><Button variant="primary" icon="plus" onClick={() => navigate('/assistant?new=1')} style={{ width: '100%' }} data-testid="new-conversation">New conversation</Button></div>
       {!list ? <div style={{ padding: 16 }}><Skeleton lines={4} /></div> : list.length === 0 ? <p className="muted" style={{ padding: 16 }}>Your conversations appear here.</p> : <div className="list">{list.map((c) => <ListRow key={c.id} selected={c.id === conversationId} onClick={() => navigate(`/assistant/${c.id}`)} leading={<Icon name="ai" />} primary={c.title} secondary={`${c.projectName ? `${c.projectName} · ` : ''}${c.lastMessageAt ? timeAgo(c.lastMessageAt) : 'new'}`} data-testid="conversation-row" />)}</div>}
       {status && <div className="subtle" style={{ padding: 'var(--sp-3) var(--sp-4)' }}>{status.provider === 'rules' ? 'Running without an AI model: the assistant understands everyday questions about your projects.' : `Powered by ${status.model}`}</div>}
     </div>
   );
   return <>
-    <Toolbar title="AI Assistant" leading={<>{compact && conversationId ? <Button variant="quiet" icon="back" onClick={() => navigate('/assistant')} aria-label="Back" /> : <MenuToggle />}</>}><ToolbarActions /></Toolbar>
+    <Toolbar title="AI Assistant" leading={<>{compact && showChat ? <Button variant="quiet" icon="back" onClick={() => navigate('/assistant')} aria-label="Back" /> : <MenuToggle />}</>}>
+      {compact && !showChat && <Button variant="primary" icon="plus" onClick={() => navigate('/assistant?new=1')} data-testid="new-conversation-toolbar">New</Button>}
+      <ToolbarActions />
+    </Toolbar>
     <div className={`split ${compact ? 'stacked' : ''}`} style={{ flex: 1, minHeight: 0 }}>
-      {(!compact || !conversationId) && sidebar}
-      {(!compact || conversationId) && <div className="split-detail" style={{ display: 'flex', flexDirection: 'column' }}><Chat key={conversationId ?? 'new'} conversationId={conversationId} defaultProjectId={params.get('projectId')} status={status} onCreated={(c) => { void refetchList(); navigate(`/assistant/${c.id}`, { replace: true }); }} /></div>}
+      {(!compact || !showChat) && sidebar}
+      {showChat && <div className="split-detail" style={{ display: 'flex', flexDirection: 'column' }}><Chat key={conversationId ?? 'new'} conversationId={conversationId} defaultProjectId={params.get('projectId')} status={status} onCreated={(c) => { void refetchList(); navigate(`/assistant/${c.id}`, { replace: true }); }} /></div>}
     </div>
   </>;
 }

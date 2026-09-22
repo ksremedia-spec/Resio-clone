@@ -101,10 +101,14 @@ export function Stepper({ value, onChange, min = 0, max = 9999, label }: { value
 export function Chip({ on: active, children, onClick }: { on?: boolean; children: ReactNode; onClick?: () => void }) { return <button type="button" className={`chip ${active ? 'on' : ''}`} onClick={onClick} aria-pressed={active}>{children}</button>; }
 
 // ---------- layout ----------
-export function Card({ title, actions, children, className = '', wide }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; wide?: boolean }) {
-  return <section className={`card ${wide ? 'wide' : ''} ${className}`}>{(title || actions) && <header className="card-header"><h3>{title}</h3>{actions}</header>}{children}</section>;
+export function Card({ title, actions, children, className = '', wide, id }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; wide?: boolean; id?: string }) {
+  return <section id={id} className={`card ${wide ? 'wide' : ''} ${className}`}>{(title || actions) && <header className="card-header"><h3>{title}</h3>{actions}</header>}{children}</section>;
 }
-export function Stat({ label, value, tone }: { label: string; value: ReactNode; tone?: 'warn' | 'danger' | 'ok' }) { return <div className={`stat ${tone ?? ''}`}><div className="label">{label}</div><div className="value">{value}</div></div>; }
+export function Stat({ label, value, tone, onClick, hint }: { label: string; value: ReactNode; tone?: 'warn' | 'danger' | 'ok'; onClick?: () => void; hint?: string }) {
+  const inner = <><div className="label">{label}</div><div className="value">{value}</div>{hint && <div className="hint">{hint}</div>}</>;
+  if (onClick) return <button type="button" className={`stat clickable ${tone ?? ''}`} onClick={onClick} aria-label={`${label}: ${typeof value === 'string' || typeof value === 'number' ? value : ''}${hint ? `. ${hint}` : ''}`} data-testid="stat">{inner}</button>;
+  return <div className={`stat ${tone ?? ''}`}>{inner}</div>;
+}
 export function Toolbar({ title, children, leading }: { title?: ReactNode; children?: ReactNode; leading?: ReactNode }) {
   return <header className="toolbar">{leading}{title && <h1 className="truncate">{title}</h1>}<div className="spacer" />{children}</header>;
 }

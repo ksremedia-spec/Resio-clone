@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import type { contracts } from '@buildline/core';
 import { useResource } from '../../api/hooks';
 import { MenuToggle, ToolbarActions } from '../../layouts/AppShell';
@@ -12,7 +12,8 @@ import { InvoiceDetail } from './ProjectInvoices';
 export default function InvoicesHome() {
   const navigate = useNavigate();
   const { invoiceId } = useParams();
-  const [status, setStatus] = useState<'open' | 'overdue' | 'paid' | 'draft' | 'all'>('open');
+  const [params] = useSearchParams();
+  const [status, setStatus] = useState<'open' | 'overdue' | 'paid' | 'draft' | 'all'>((['open', 'overdue', 'paid', 'draft', 'all'].includes(params.get('status') ?? '') ? params.get('status') : 'open') as 'open' | 'overdue' | 'paid' | 'draft' | 'all');
   const [q, setQ] = useState('');
   const dq = useDebounced(q);
   const { data, isLoading, error, refetch } = useResource<{ items: contracts.Invoice[] }>(`/v1/invoices?status=${status}&limit=200${dq ? `&q=${encodeURIComponent(dq)}` : ''}`);

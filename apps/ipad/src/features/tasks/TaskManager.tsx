@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import type { contracts } from '@buildline/core';
 import { api, useApiMutation, useResource } from '../../api/hooks';
 import { MenuToggle, ToolbarActions } from '../../layouts/AppShell';
@@ -12,7 +12,8 @@ import { TaskRow } from './ProjectTasks';
 export default function TaskManager() {
   const session = useSession();
   const navigate = useNavigate();
-  const [scope, setScope] = useState<'mine' | 'all'>(session.membership?.roleKey === 'owner' || session.membership?.roleKey === 'project_manager' ? 'all' : 'mine');
+  const [params] = useSearchParams();
+  const [scope, setScope] = useState<'mine' | 'all'>(params.get('scope') === 'all' || params.get('scope') === 'mine' ? (params.get('scope') as 'mine' | 'all') : session.membership?.roleKey === 'owner' || session.membership?.roleKey === 'project_manager' ? 'all' : 'mine');
   const [kind, setKind] = useState<'all' | 'schedule' | 'todo'>('all');
   const today = todayIso();
   const twoWeeks = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
