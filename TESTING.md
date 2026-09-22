@@ -57,6 +57,24 @@ working and anything you save is queued and sent when Wi‑Fi returns.
 * Settings → Members: invite someone; Roles: edit what each role can do.
 * Field mode (sign in as Jake) for the on-site experience.
 
+Money (new):
+
+* Projects → Baker Addition → Estimate: tap **Line**, search the catalog for
+  "quartz", set a quantity and add it. Change **Markup & tax** and watch every
+  line re-price. **Lock estimate** turns it into a budget and sets the contract.
+* Projects → Smith Residence → Budget: each line shows original, approved
+  changes, committed (open purchase orders), actual (approved bills) and
+  variance. Tap a line to see every transaction behind the numbers.
+* Change Orders: open the one that is "sent" and **Record approval**. The
+  contract value and the budget update immediately.
+* Invoices: open the draft **Draw 3**, **Send to client**, then **Record
+  payment**. Try **New invoice** and bill a percentage of a budget line.
+* Purchasing: open PO-0002 (Bluebonnet Plumbing), **Issue to vendor**, then
+  **Enter bill**; approving the bill marks the PO matched. A bill that exceeds
+  its PO shows an over-billing warning before you approve it.
+* Vendors, Estimating (catalog and cost codes), Budget and Invoices in the left
+  menu show the same information across every project.
+
 ## Starting over
 
 Stop the app (close the Terminal window), delete the folder `data/demo` inside
@@ -66,8 +84,10 @@ the project, and start again. Fresh demo data is created.
 
 Done and tested: sign-in and company setup, roles and permissions, clients,
 projects, schedule with dependencies, tasks, daily logs, documents, messaging,
-notifications, search, activity history, offline queue.
+notifications, search, activity history, offline queue, cost catalog and cost
+codes, estimates, budgets and job costing, change orders, purchase orders and
+bills, invoices and payments, vendors.
 
-Not built yet: estimating, budgets, change orders, invoices and payments, the
-client and vendor portals, time clock, the AI assistant and reports. Those
-menu items show a "coming in Phase N" note.
+Not built yet: the client portal (proposals, selections, online approvals and
+payments), the vendor portal, time clock, the AI assistant, leads and reports.
+Those menu items show a "coming in Phase N" note.
