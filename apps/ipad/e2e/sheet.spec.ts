@@ -66,6 +66,21 @@ test.describe('client selections sheet', () => {
     await expect(page.getByTestId('sheet-signoff')).toContainText('Jane Smith (client)');
   });
 
+  test('the Selections page shows live client choices to the team, and the assistant can answer from them', async ({ page }) => {
+    await signIn(page);
+    await nav(page, 'Selections');
+    const baker = page.getByTestId('project-selections-card').filter({ hasText: 'Baker Addition' });
+    await expect(baker).toContainText('decided');
+    await expect(baker).toContainText('White Oak');
+    await expect(page.getByTestId('recent-decisions')).toContainText('Baker Addition');
+    await baker.getByTestId('home-open-sheet').click();
+    await expect(page.getByTestId('selections-sheet')).toBeVisible();
+    await nav(page, 'AI Assistant');
+    await page.getByTestId('ai-composer').fill('What did the Bakers choose for flooring?');
+    await page.getByTestId('ai-send').click();
+    await expect(page.getByTestId('ai-message').last()).toContainText(/White Oak|selections decided/, { timeout: 20_000 });
+  });
+
   test('field crew can read the finished picks from field mode', async ({ page }) => {
     await signIn(page, 'jake@demo.buildline.app');
     await page.getByRole('button', { name: 'Client selections' }).click();

@@ -23,6 +23,7 @@ const NAV: Array<{ key: keyof typeof NAV_PERMISSIONS; to: string; label: string;
   { key: 'invoices', to: '/invoices', label: 'Invoices', icon: 'invoices' },
   { key: 'messages', to: '/messages', label: 'Messages', icon: 'messages', section: 'Work' },
   { key: 'documents', to: '/documents', label: 'Documents', icon: 'documents' },
+  { key: 'selections', to: '/selections', label: 'Selections', icon: 'layout' },
   { key: 'time', to: '/time', label: 'Time', icon: 'clock' },
   { key: 'reports', to: '/reports', label: 'Reports', icon: 'reports' },
   { key: 'ai', to: '/assistant', label: 'AI Assistant', icon: 'ai' },
@@ -30,7 +31,7 @@ const NAV: Array<{ key: keyof typeof NAV_PERMISSIONS; to: string; label: string;
 ];
 
 /** External (client/vendor) accounts get a short menu: their home, projects, messages, documents, settings. */
-const PORTAL_KEYS = new Set(['dashboard', 'projects', 'invoices', 'messages', 'documents', 'settings']);
+const PORTAL_KEYS = new Set(['dashboard', 'projects', 'invoices', 'messages', 'documents', 'selections', 'settings']);
 
 export function AppShell({ children }: { children: ReactNode }) {
   const session = useSession();

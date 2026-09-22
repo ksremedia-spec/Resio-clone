@@ -15,7 +15,7 @@ export default function ProjectSelections({ project }: { project: contracts.Proj
   const navigate = useNavigate();
   const session = useSession();
   const [params, setParams] = useSearchParams();
-  const { data, isLoading, error, refetch } = useResource<{ items: contracts.Selection[] }>(`/v1/projects/${project.id}/selections?status=all&limit=200`);
+  const { data, isLoading, error, refetch } = useResource<{ items: contracts.Selection[] }>(`/v1/projects/${project.id}/selections?status=all&limit=200`, { refetchInterval: 30_000 } as any);
   const items = data?.items ?? [];
   const canWrite = session.has('selections.write');
   const portal = !!session.membership?.external;

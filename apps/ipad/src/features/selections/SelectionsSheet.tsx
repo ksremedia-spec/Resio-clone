@@ -17,7 +17,7 @@ export default function SelectionsSheet({ project }: { project: contracts.Projec
   const navigate = useNavigate();
   const toast = useToast();
   const errorToast = useErrorToast();
-  const { data: sheet, isLoading, error, refetch } = useResource<contracts.SelectionSheet>(`/v1/projects/${project.id}/selections/sheet`);
+  const { data: sheet, isLoading, error, refetch } = useResource<contracts.SelectionSheet>(`/v1/projects/${project.id}/selections/sheet`, { refetchInterval: 30_000 } as any);
   const [signing, setSigning] = useState(false);
   const [form, setForm] = useState({ signerName: session.membership?.external ? `${session.user?.firstName ?? ''} ${session.user?.lastName ?? ''}`.trim() : '', signatureText: '', note: '' });
   const publish = useApiMutation(() => api.mutate<contracts.Document>('POST', `/v1/projects/${project.id}/selections/publish`, { vendorVisible: true }), [`/v1/projects/${project.id}`, '/v1/documents', '/v1/folders']);

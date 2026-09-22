@@ -121,6 +121,7 @@ export class RuleBasedProvider implements LlmProvider {
     }
 
     // ----- read intents -----
+    if (/\b(selections?|selected|chose|chosen|pick(?:ed|s)?|finishes|flooring|countertop|cabinet|paint colou?r)\b/.test(lower)) return needProject('client_selections');
     if (/\b(leads?|pipeline|prospects?|follow[- ]?ups?|sales)\b/.test(lower)) return has('sales_pipeline') ? call('sales_pipeline', {}) : { text: "You don't have access to leads.", toolCalls: [] };
     if (/\b(aging|past due|receivables?|owed to us|who owes)\b/.test(lower)) return has('receivables') ? call('receivables', {}) : { text: "You don't have access to invoices.", toolCalls: [] };
     if (/\b(overdue|late|behind|slipp)/.test(lower)) return optProject('overdue_tasks');
@@ -143,7 +144,8 @@ function resolveProject(lower: string, ctx: LlmContext): { id: string; name: str
   for (const p of ctx.projects) {
     const name = p.name.toLowerCase();
     const first = name.split(/[\s—–-]+/).filter((w) => w.length > 3)[0];
-    if (lower.includes(name) || lower.includes(p.number.toLowerCase()) || (first && new RegExp(`\\b${escape(first)}\\b`).test(lower))) return { id: p.id, name: p.name };
+    // "the Bakers", "Baker's place" and "Baker" all mean the Baker project: match the first significant word as a prefix.
+    if (lower.includes(name) || lower.includes(p.number.toLowerCase()) || (first && new RegExp(`\\b${escape(first)}(?:s|'s|’s)?\\b`).test(lower))) return { id: p.id, name: p.name };
   }
   if (ctx.projectId) { const p = ctx.projects.find((x) => x.id === ctx.projectId); if (p) return { id: p.id, name: p.name }; }
   return null;

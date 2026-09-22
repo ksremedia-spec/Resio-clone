@@ -187,6 +187,7 @@ export const NAV_PERMISSIONS: Record<string, Permission | null> = {
   invoices: 'invoices.read',
   messages: 'messages.read',
   documents: 'documents.read',
+  selections: 'selections.read',
   time: 'time.clock',
   reports: 'reports.read',
   ai: 'ai.use',

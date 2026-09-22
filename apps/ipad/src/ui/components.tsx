@@ -101,8 +101,8 @@ export function Stepper({ value, onChange, min = 0, max = 9999, label }: { value
 export function Chip({ on: active, children, onClick }: { on?: boolean; children: ReactNode; onClick?: () => void }) { return <button type="button" className={`chip ${active ? 'on' : ''}`} onClick={onClick} aria-pressed={active}>{children}</button>; }
 
 // ---------- layout ----------
-export function Card({ title, actions, children, className = '', wide, id }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; wide?: boolean; id?: string }) {
-  return <section id={id} className={`card ${wide ? 'wide' : ''} ${className}`}>{(title || actions) && <header className="card-header"><h3>{title}</h3>{actions}</header>}{children}</section>;
+export function Card({ title, actions, children, className = '', wide, id, 'data-testid': testId }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; wide?: boolean; id?: string; 'data-testid'?: string }) {
+  return <section id={id} data-testid={testId} className={`card ${wide ? 'wide' : ''} ${className}`}>{(title || actions) && <header className="card-header"><h3>{title}</h3>{actions}</header>}{children}</section>;
 }
 export function Stat({ label, value, tone, onClick, hint }: { label: string; value: ReactNode; tone?: 'warn' | 'danger' | 'ok'; onClick?: () => void; hint?: string }) {
   const inner = <><div className="label">{label}</div><div className="value">{value}</div>{hint && <div className="hint">{hint}</div>}</>;

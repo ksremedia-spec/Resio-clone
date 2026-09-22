@@ -158,6 +158,11 @@ Client selections sheet (new):
   sheet**) freezes the sheet as it stands. **Publish to documents** saves a
   copy into Documents → Specifications where the crew, the client and
   subcontractors can read the finished picks. **Print / PDF** prints it.
+* **Selections** in the main menu (every role, including the homeowner and
+  subcontractors) shows the live choices on every project you can see, with
+  the latest decisions first. It refreshes itself every 30 seconds and every
+  account is reading the same record on the server. Ask the assistant "What
+  did the Bakers choose for flooring?".
 * Sign in as Jane (homeowner) after adding the checklist to Smith Residence:
   her home page shows "Your selections sheet" with progress; she can tick her
   choices and sign. Sign in as Jake (field crew): Field mode has a **Client

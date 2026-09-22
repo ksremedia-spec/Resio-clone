@@ -159,6 +159,18 @@ export function buildTools(s: Services): ToolDef[] {
       },
     },
     {
+      name: 'client_selections', kind: 'read', permission: 'selections.read',
+      description: 'What the client has chosen on a project (flooring, doors, windows, paint, fixtures…) and which selections are still waiting on them.',
+      input: z.object({ projectId }),
+      summarize: () => 'looked up the client selections',
+      run: async (ctx, i) => {
+        const sheet = await s.selections.sheet(ctx, i.projectId);
+        const decided = sheet.sections.flatMap((sec) => sec.items.filter((x) => x.status === 'decided').map((x) => { const opt = x.options.find((o) => o.id === x.selectedOptionId)?.name; const bits = [opt, x.matchExisting ? 'match existing' : null, x.chosenAreas.length ? x.chosenAreas.join(', ') : null, ...Object.entries(x.answers).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`)].filter(Boolean); return { section: sec.label, item: x.name, choice: bits.join('; '), decidedBy: x.decidedByName, comment: x.comment }; }));
+        const waiting = sheet.sections.flatMap((sec) => sec.items.filter((x) => x.status === 'released').map((x) => x.name));
+        return { output: { counts: sheet.counts, decided, waiting, signed: sheet.signoffs.length > 0 }, summary: sheet.counts.total === 0 ? 'No selections on this project yet.' : `${sheet.counts.decided} of ${sheet.counts.total} selections decided${sheet.signoffs.length ? ' (sheet signed)' : ''}. ${decided.length ? `Chosen: ${decided.slice(0, 12).map((d) => `${d.item} → ${d.choice}`).join('; ')}${decided.length > 12 ? '; …' : ''}.` : ''}${waiting.length ? ` Still waiting on the client: ${waiting.slice(0, 8).join(', ')}${waiting.length > 8 ? '…' : ''}.` : ''}`, link: `/projects/${i.projectId}/selections/sheet` };
+      },
+    },
+    {
       name: 'sales_pipeline', kind: 'read', permission: 'leads.read',
       description: 'Open leads by stage with estimated values, win rate, and which follow-ups are due.',
       input: z.object({}),

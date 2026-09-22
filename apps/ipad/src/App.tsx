@@ -30,6 +30,7 @@ const InvoicesHome = lazy(() => import('./features/invoices/InvoicesHome'));
 const Vendors = lazy(() => import('./features/vendors/Vendors'));
 const Leads = lazy(() => import('./features/leads/Leads'));
 const Reports = lazy(() => import('./features/reports/Reports'));
+const SelectionsHome = lazy(() => import('./features/selections/SelectionsHome'));
 
 function Centered({ children }: { children: ReactNode }) { return <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>{children}</div>; }
 
@@ -74,6 +75,7 @@ export function App() {
             <Route path="messages" element={<MessagesHome />} />
             <Route path="messages/:threadId" element={<MessagesHome />} />
             <Route path="documents" element={<DocumentsHome />} />
+            <Route path="selections" element={<SelectionsHome />} />
             <Route path="settings/*" element={<Settings />} />
             <Route path="leads" element={<Leads />} />
             <Route path="leads/:leadId" element={<Leads />} />
