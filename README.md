@@ -39,7 +39,7 @@ Requirements: Node 22+, pnpm 10, PostgreSQL 16 reachable at
 ```bash
 pnpm install
 pnpm db:migrate          # creates the database if missing and applies apps/api/drizzle/*.sql
-pnpm db:seed             # demo organization "Ridgeline Builders"
+pnpm db:seed             # demo organization "R. P. Valois & Co."
 pnpm dev:api             # http://localhost:4000  (Swagger UI at /docs)
 pnpm dev:ipad            # http://localhost:5173  (open at an iPad viewport)
 ```
@@ -60,6 +60,15 @@ pnpm --filter @buildline/ipad test:ui     # Playwright at iPad Pro landscape/por
 The API tests cover authentication, invitations and roles, tenant isolation,
 permission enforcement, optimistic concurrency, documents and signed URLs,
 schedule cascading and conflicts, daily logs, messaging and offline sync.
+
+## Putting it on the company iPads
+
+This build is for R. P. Valois & Co.'s own devices, not the public App Store.
+`docs/11-server-setup.md` explains hosting the server in plain English and
+`docs/10-testflight.md` explains installing the app on the company iPads
+through TestFlight (or Ad Hoc). The iOS project lives in `apps/ipad/ios`
+(bundle id `com.rpvalois.buildline`); the sign-in screen lets an installed
+app be pointed at a different server without rebuilding.
 
 ## Documentation
 

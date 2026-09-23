@@ -15,7 +15,9 @@ export function useResource<T>(path: string | null, options: Partial<UseQueryOpt
 
 export function useInvalidateOnEvents() {
   const qc = useQueryClient();
-  useEffect(() => on('invalidate', (prefixes: string[]) => { void qc.invalidateQueries({ predicate: (query) => { const p = query.queryKey[1]; return typeof p === 'string' && prefixes.some((pre) => p === pre || p.startsWith(pre)); } }); }), [qc]);
+  // cancelRefetch: false — a second invalidation for the same screen (the API client emits one, the mutation hook another)
+  // must not restart fetches already in flight; on the in-browser demo every restart costs a full database round trip.
+  useEffect(() => on('invalidate', (prefixes: string[]) => { void qc.invalidateQueries({ predicate: (query) => { const p = query.queryKey[1]; return typeof p === 'string' && prefixes.some((pre) => p === pre || p.startsWith(pre)); } }, { cancelRefetch: false }); }), [qc]);
 }
 
 export function useApiMutation<TInput, TOut>(fn: (input: TInput) => Promise<Result<TOut>>, invalidates: string[] | ((input: TInput, out: TOut) => string[]) = []) {
@@ -24,7 +26,7 @@ export function useApiMutation<TInput, TOut>(fn: (input: TInput) => Promise<Resu
     mutationFn: fn,
     onSuccess: (res, input) => {
       const prefixes = typeof invalidates === 'function' ? invalidates(input, res.data) : invalidates;
-      void qc.invalidateQueries({ predicate: (query) => { const p = query.queryKey[1]; return typeof p === 'string' && prefixes.some((pre) => p === pre || p.startsWith(pre)); } });
+      void qc.invalidateQueries({ predicate: (query) => { const p = query.queryKey[1]; return typeof p === 'string' && prefixes.some((pre) => p === pre || p.startsWith(pre)); } }, { cancelRefetch: false });
     },
   });
 }

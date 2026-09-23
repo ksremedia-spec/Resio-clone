@@ -16,7 +16,7 @@ test('standalone: boots the in-page backend, signs in, creates and lists data', 
   await page.getByRole('button', { name: 'To-do', exact: true }).click();
   await page.getByRole('dialog').getByLabel('Name').fill('Standalone punch item');
   await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click();
-  await expect(page.getByTestId('task-row').filter({ hasText: 'Standalone punch item' })).toBeVisible();
+  await expect(page.getByTestId('task-row').filter({ hasText: 'Standalone punch item' })).toBeVisible({ timeout: 15_000 }); // the in-browser database is slower than a real server
   await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Daily Logs' }).click();
   await expect(page.getByTestId('daily-log-row').first()).toBeVisible();
   await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Budget' }).click();

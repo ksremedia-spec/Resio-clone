@@ -168,6 +168,9 @@ Client selections sheet (new):
   choices and sign. Sign in as Jake (field crew): Field mode has a **Client
   selections** tile that opens the sheet read-only.
 
+* The sign-in screen shows which **server** the app is talking to, with a
+  **change** link for pointing an installed iPad app at the company server.
+
 ## Starting over
 
 Stop the app (close the Terminal window), delete the folder `data/demo` inside

@@ -16,7 +16,7 @@ export async function seedDemo(services: Services, db: Db, log: (m: string) => v
     const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, DEMO_OWNER.email)).limit(1);
     if (existing) { log('demo data already present; skipping'); return false; }
 
-    const session = await services.auth.register({ email: DEMO_OWNER.email, password: DEMO_OWNER.password, firstName: 'Dana', lastName: 'Ortiz', organizationName: 'Ridgeline Builders' });
+    const session = await services.auth.register({ email: DEMO_OWNER.email, password: DEMO_OWNER.password, firstName: 'Dana', lastName: 'Ortiz', organizationName: 'R. P. Valois & Co.' });
     const auth = await services.auth.authenticate(session.token);
     const owner = (await services.auth.buildContext(auth!, session.activeOrganizationId, {}))!;
     log(`organization ${owner.organizationId} created (owner ${DEMO_OWNER.email} / ${DEMO_OWNER.password})`);
@@ -157,7 +157,7 @@ export async function seedDemo(services: Services, db: Db, log: (m: string) => v
     await services.procurement.createBill(pm, { projectId: smithProject.id, vendorId: plumber.id, vendorReference: 'BP-1188', billDate: '2026-09-18', dueDate: '2026-10-18', taxCents: 0, notes: 'Not on a PO — check before approving.', lines: [{ budgetLineId: bl('Plumbing rough-in and trim (sink, DW, pot filler)'), description: 'Extra trip for pot filler line', amountCents: 28_500 }] });
     log('created purchase orders and bills');
 
-    const draw1 = await services.invoices.create(owner, smithProject.id, { title: 'Draw 1 — mobilization and demolition', billingType: 'progress', issueDate: '2026-09-02', dueDate: '2026-09-16', taxBp: 825, retainageBp: 0, notes: 'Thank you for choosing Ridgeline.', terms: 'Due on receipt. 1.5% per month on late balances.', lines: [
+    const draw1 = await services.invoices.create(owner, smithProject.id, { title: 'Draw 1 — mobilization and demolition', billingType: 'progress', issueDate: '2026-09-02', dueDate: '2026-09-16', taxBp: 825, retainageBp: 0, notes: 'Thank you for choosing R. P. Valois & Co.', terms: 'Due on receipt. 1.5% per month on late balances.', lines: [
       { description: 'Demolition — complete', budgetLineId: bl('Demolition — kitchen'), percentBp: 10_000, taxable: false },
       { description: 'Permits & inspections', budgetLineId: bl('Permits & inspections'), percentBp: 10_000, taxable: false },
       { description: 'Mobilization', quantityThousandths: 1000, unitPriceCents: 250_000, taxable: false },

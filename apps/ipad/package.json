@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:ui": "playwright test",
     "cap:sync": "cap sync ios",
-    "cap:open": "cap open ios"
+    "cap:open": "cap open ios",
+    "ios:icons": "node scripts/make-ios-icons.mjs"
   },
   "dependencies": {
     "@buildline/core": "workspace:*",
@@ -21,6 +22,7 @@
     "@capacitor/core": "^7.0.0",
     "@capacitor/filesystem": "^7.0.0",
     "@capacitor/haptics": "^7.0.0",
+    "@capacitor/ios": "^7.6.9",
     "@capacitor/keyboard": "^7.0.0",
     "@capacitor/network": "^7.0.0",
     "@capacitor/status-bar": "^7.0.0",

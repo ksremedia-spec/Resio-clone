@@ -1,0 +1,9 @@
+
+# Capacitor iOS: generated on the Mac by `npx cap sync ios`
+ios/App/Pods
+ios/App/build
+ios/App/App/public
+ios/App/App/capacitor.config.json
+ios/App/Podfile.lock
+ios/App/App.xcworkspace/xcuserdata
+ios/App/App.xcodeproj/xcuserdata

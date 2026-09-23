@@ -3,7 +3,13 @@ import { emit } from '../store/events';
 
 // Dev server talks to the API on :4000; a production build served by the API itself uses the same origin,
 // which also makes the app reachable from an iPad on the same Wi-Fi without any configuration.
-export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin);
+const BUILT_IN_API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin);
+const SERVER_KEY = 'buildline.serverUrl';
+/** A person can point an installed app at a different server from the sign-in screen (kept on the device; takes effect after reload). */
+export function getServerOverride(): string | null { try { return localStorage.getItem(SERVER_KEY); } catch { return null; } }
+export function setServerOverride(url: string | null) { try { if (url) localStorage.setItem(SERVER_KEY, url.replace(/\/+$/, '')); else localStorage.removeItem(SERVER_KEY); } catch { /* storage blocked */ } }
+export const API_URL: string = getServerOverride() ?? BUILT_IN_API_URL;
+export const BUILT_IN_SERVER = BUILT_IN_API_URL;
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details?: unknown) { super(message); }

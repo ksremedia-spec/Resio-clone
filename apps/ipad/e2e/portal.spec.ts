@@ -143,7 +143,7 @@ test.describe('client experience', () => {
     await page.getByRole('button', { name: 'Invite to client portal' }).first().click();
     const link = await page.getByTestId('portal-invite-link').inputValue();
     await page.getByRole('button', { name: 'Done' }).click();
-    await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: /Ridgeline/ }).click();
+    await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: /Valois/ }).click();
     await page.getByRole('menuitem', { name: 'Sign out' }).click();
     await page.goto(new URL(link).pathname + new URL(link).search);
     await page.getByLabel('First name').fill('Bill');
