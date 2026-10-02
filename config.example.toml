@@ -1,0 +1,55 @@
+# Copy this file to config.toml and fill in [api]. Any setting you delete uses the default shown here.
+# config.toml holds your API key: never share it or upload it anywhere.
+
+[api]
+username = ""            # your TopstepX username
+api_key = ""             # from TopstepX's API settings
+account = ""             # part of the account name to trade, e.g. "50KTC"; blank = your only tradable account
+base_url = "https://api.topstepx.com"
+live_data = false        # keep false for Combine and funded accounts
+
+[instrument]
+symbol = "MES"           # Micro E-mini S&P 500, $5 per point
+tick_size = 0.25
+point_value = 5.0
+commission_rt = 1.00     # fees per contract, in and out; check TopstepX's fee schedule and update this
+slippage_ticks = 1       # backtest only: how much worse than the bar price each market fill is assumed to be
+
+[strategy]
+bar_minutes = 5
+range_start = "08:30"    # Central time
+range_minutes = 15       # the opening range: 8:30 to 8:45
+last_entry = "11:00"     # no new trades after this
+flat_time = "15:00"      # close everything; must be 15:05 or earlier (Topstep: flat by 15:10)
+min_range_points = 3.0   # skip days with a tinier opening range than this
+max_range_points = 40.0  # or a wider one than this
+breakout_ticks = 1       # how far past the range a bar must close
+stop_mode = "range"      # "range" = stop at the other side of the range, "mid" = at its middle
+reward_risk = 1.5        # target = 1.5 times the distance to the stop
+direction = "both"       # "both", "long" or "short"
+
+[risk]
+risk_per_trade = 200.0   # most one stopped-out trade may lose, fees and slippage included
+max_contracts = 20
+daily_loss_limit = 400.0 # backstop: close and stop for the day at this loss
+daily_profit_cap = 1400.0 # close and stop at this profit, to stay under the consistency rule ($1,500)
+mll_buffer = 250.0       # never size a trade that could end closer than this to the Maximum Loss Limit
+kill_buffer = 150.0      # close at once if open losses get this close to the Maximum Loss Limit
+stop_slippage_ticks = 4  # extra slippage allowed for when sizing trades
+
+[combine]
+start_balance = 50000.0
+profit_target = 3000.0
+max_loss = 2000.0        # the Maximum Loss Limit distance
+consistency = 0.5        # best day may be at most 50% of the profit target; 0 turns this off
+min_trading_days = 2
+monthly_fee = 95.0       # simulator cost tracking: Combine subscription per month
+activation_fee = 0.0     # paid once on passing (Standard path); 0 on the No Activation Fee path
+api_monthly_fee = 14.50  # API add-on per month
+max_calendar_days = 180  # simulator gives up on an attempt after this long
+
+[bot]
+poll_seconds = 5.0
+state_file = "state/bot_state.json"
+log_file = "logs/bot.log"
+current_mll = 0.0        # starting partway through a Combine? enter the Maximum Loss Limit TopstepX shows

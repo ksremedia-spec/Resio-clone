@@ -1,0 +1,14 @@
+# Your API key lives here: never commit it.
+config.toml
+.env
+
+# Created when you run the bot
+state/
+logs/
+data/
+reports/
+
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
