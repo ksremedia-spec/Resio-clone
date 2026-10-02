@@ -28,6 +28,20 @@ stop_mode = "range"      # "range" = stop at the other side of the range, "mid" 
 reward_risk = 1.5        # target = 1.5 times the distance to the stop
 direction = "both"       # "both", "long" or "short"
 
+[picker]
+# The trade picker scores each day's first breakout before the bot takes it. The backtest's
+# TRADE PICKER report shows whether each check helped on your data: keep only the ones that
+# "helped in both periods" and switch the rest off here.
+enabled = true
+min_score = 2            # checks a breakout must pass, out of the ones switched on
+lookback_days = 14       # days averaged for "usual" opening volume and day range
+use_volume = true        # the first 15 minutes busier than usual?
+min_rvol = 1.0           # opening volume at least this many times its recent average
+use_range = true         # the opening range tight compared with a normal day?
+max_range_share = 0.35   # opening range at most this share of an average day's range
+use_trend = true         # breaking out the same way as the recent trend?
+trend_days = 20          # the trend is the net move over this many days
+
 [risk]
 risk_per_trade = 200.0   # most one stopped-out trade may lose, fees and slippage included
 max_contracts = 20

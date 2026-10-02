@@ -4,7 +4,7 @@ import pytest
 
 from combine_bot.bars import round_to_tick
 from combine_bot.risk import Instrument, RiskParams, position_size
-from combine_bot.sim import backtest, backtest_stats, simulate_day
+from combine_bot.sim import backtest, backtest_stats, chosen, simulate_day
 from combine_bot.strategy import LONG, SHORT, ORBParams, OpeningRangeBreakout
 from combine_bot.synthetic import synthetic_bars
 from helpers import MONDAY, bar, ct, opening_day
@@ -106,7 +106,7 @@ def test_position_size_respects_risk_and_room():
 def test_random_prices_give_no_edge():
     """On a pure random walk the average trade should lose about its costs, never show a profit."""
     days = backtest(synthetic_bars(days=1500, seed=3), STRAT, INST)
-    stats = backtest_stats(days, INST, RiskParams(), room=2000)
+    stats = backtest_stats(chosen(days, use_picker=False), INST, RiskParams(), room=2000)
     assert stats.trades > 1000
     per_trade = stats.total / stats.trades
     assert -40 < per_trade < 5

@@ -1,11 +1,38 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from combine_bot.bars import CT, Bar
 from combine_bot.projectx import BUY, MARKET, STOP
 
 MONDAY = date(2026, 10, 5)
+
+
+def session(day: date, start: float, drift: float, volume: float, wiggle: float = 2.0) -> list[Bar]:
+    """A full 8:30-15:15 CT day of 5-minute bars moving `drift` points per bar."""
+    bars, price = [], start
+    open_time = datetime.combine(day, time(8, 30), tzinfo=CT)
+    for i in range(81):
+        o, c = price, price + drift
+        bars.append(Bar((open_time + timedelta(minutes=5 * i)).astimezone(timezone.utc),
+                        o, max(o, c) + wiggle, min(o, c) - wiggle, c, volume))
+        price = c
+    return bars
+
+
+def history(drift: float, volume: float, days: int = 25, before: date = MONDAY) -> list[Bar]:
+    """`days` weekdays of sessions ending the day before `before`, each continuing the last."""
+    dates, d = [], before - timedelta(days=1)
+    while len(dates) < days:
+        if d.weekday() < 5:
+            dates.append(d)
+        d -= timedelta(days=1)
+    bars, price = [], 5000.0
+    for d in reversed(dates):
+        day = session(d, price, drift, volume)
+        bars += day
+        price = day[-1].close
+    return bars
 
 
 def ct(day: date, hhmm: str, second: int = 0) -> datetime:

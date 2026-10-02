@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from .bars import Bar, by_day, round_to_tick
+from .picker import DayStats, PickerParams, Score, context, day_stats, score
 from .risk import Instrument, RiskParams, position_size
-from .strategy import OpeningRangeBreakout
+from .strategy import ORBParams, OpeningRangeBreakout, Signal
 
 # A pause this long between bars means the session ended (early close or missing data).
 SESSION_GAP = timedelta(minutes=30)
@@ -29,11 +30,12 @@ class Trade:
     mae_points: float  # worst open loss per contract during the trade (<= 0)
 
 
-def simulate_day(day: date, bars: list[Bar], strategy: OpeningRangeBreakout, inst: Instrument) -> Trade | None:
+def simulate_day(day: date, bars: list[Bar], strategy: OpeningRangeBreakout, inst: Instrument,
+                 signal: Signal | None = None) -> Trade | None:
     """Trade one day. Fills: market entry at the next bar's open, stop first when a bar touches
     both stop and target, gaps through the stop fill at the open, slippage on every market exit."""
     p = strategy.p
-    signal = strategy.signal(bars)
+    signal = signal or strategy.signal(bars)
     if signal is None or signal.index + 1 >= len(bars):
         return None
     k = signal.index + 1
@@ -79,15 +81,43 @@ def simulate_day(day: date, bars: list[Bar], strategy: OpeningRangeBreakout, ins
     )
 
 
-def backtest(bars: list[Bar], strategy: OpeningRangeBreakout, inst: Instrument) -> list[tuple[date, Trade | None]]:
-    """One entry per trading day (weekday with day-session data); None where there was no trade."""
-    p = strategy.p
+def sessions(bars: list[Bar], params: ORBParams) -> list[tuple[date, list[Bar]]]:
+    """Trading days: weekdays with bars inside the strategy's trading hours."""
+    return [
+        (day, day_bars) for day, day_bars in by_day(bars)
+        if day.weekday() < 5 and any(params.range_start <= b.local.time() < params.flat_time for b in day_bars)
+    ]
+
+
+@dataclass(frozen=True)
+class Day:
+    day: date
+    trade: Trade | None  # the day's first breakout, before the trade picker
+    score: Score | None  # the picker's verdict on that breakout
+
+
+def backtest(bars: list[Bar], strategy: OpeningRangeBreakout, inst: Instrument,
+             picker: PickerParams | None = None) -> list[Day]:
+    """Every trading day with its first breakout (if any) and the trade picker's score for it.
+
+    The picker only sees earlier days plus today's opening range, as the live bot would."""
+    picker = picker or PickerParams()
+    has_volume = any(b.volume > 0 for b in bars)
+    history: list[DayStats] = []
     out = []
-    for day, day_bars in by_day(bars):
-        if day.weekday() >= 5 or not any(p.range_start <= b.local.time() < p.flat_time for b in day_bars):
-            continue
-        out.append((day, simulate_day(day, day_bars, strategy, inst)))
+    for day, day_bars in sessions(bars, strategy.p):
+        stats = day_stats(day, day_bars, strategy.p)
+        signal = strategy.signal(day_bars)
+        trade = simulate_day(day, day_bars, strategy, inst, signal) if signal else None
+        verdict = score(signal, stats.or_volume, context(history, picker), picker, has_volume=has_volume) if trade else None
+        out.append(Day(day, trade, verdict))
+        history.append(stats)
     return out
+
+
+def chosen(days: list[Day], use_picker: bool = True) -> list[tuple[date, Trade | None]]:
+    """The trades actually taken: only those the picker passes, or every breakout."""
+    return [(d.day, d.trade if d.trade and (not use_picker or d.score.ok) else None) for d in days]
 
 
 def trade_pnl(trade: Trade, contracts: int, inst: Instrument) -> float:

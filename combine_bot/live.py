@@ -15,15 +15,18 @@ import json
 import os
 import time as _time
 from dataclasses import asdict, dataclass, fields, replace
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
 from .bars import CT, Bar, round_to_tick
 from .config import Config
+from .contracts import contract_id, segments, utc_midnight
+from .picker import Context, DayStats, context, day_stats, score
 from .projectx import BUY, LONG_POSITION, MARKET, SELL, STOP, ProjectXError, ProjectXNetworkError
 from .report import money
 from .risk import position_size
+from .sim import sessions
 from .strategy import LONG, SHORT, OpeningRangeBreakout, Signal
 
 COMPLETE_AFTER = timedelta(seconds=2)  # give the server a moment to finish each bar
@@ -115,6 +118,8 @@ class LiveBot:
         self._notes: set[str] = set()
         self._last_bar: datetime | None = None
         self._last_error = ""
+        self._context: Context | None = None
+        self._context_day = ""
 
     # ----- setup -----------------------------------------------------------------------
 
@@ -249,7 +254,10 @@ class LiveBot:
             st.halted = "daily loss limit reached"
             self.log("Daily loss limit reached. No more trading today.")
             return
-        signal = self.strategy.signal([b for b in bars if b.start + length + COMPLETE_AFTER <= now])
+        picker = self.cfg.picker
+        ctx = self.picker_context(local) if picker.enabled else None  # loaded before the open
+        completed = [b for b in bars if b.start + length + COMPLETE_AFTER <= now]
+        signal = self.strategy.signal(completed)
         if signal is None or last is None:
             return
         if now - signal.time > length:
@@ -257,6 +265,15 @@ class LiveBot:
             self.log(f"Today's breakout came at {signal.time.astimezone(CT):%H:%M} CT, before the bot was watching. "
                      "Not chasing it: no trade today.")
             return
+        picked = ""
+        if ctx is not None:
+            or_volume = sum(b.volume for b in completed if self.p.range_start <= b.local.time() < self.p.range_end)
+            verdict = score(signal, or_volume, ctx, picker)
+            if not verdict.ok:
+                st.trade_taken = True
+                self.log(f"Breakout skipped by the trade picker. {verdict.describe()}.")
+                return
+            picked = f" Trade picker: {verdict.describe()}."
         risk_points = signal.side * (last - signal.stop)
         if risk_points <= 0:
             st.trade_taken = True
@@ -278,13 +295,13 @@ class LiveBot:
             target = round_to_tick(last + signal.side * self.p.reward_risk * risk_points, self.inst.tick_size)
             st.trade = OpenTrade(signal.side, size, last, signal.stop, target, practice=True)
             self.log(f"[practice] Would {word} {size} {self.inst.symbol} at about {last:g}, "
-                     f"stop {signal.stop:g}, target {target:g}.")
+                     f"stop {signal.stop:g}, target {target:g}.{picked}")
             return
-        self._enter(signal, size, word)
+        self._enter(signal, size, word, picked)
 
-    def _enter(self, signal: Signal, size: int, word: str) -> None:
+    def _enter(self, signal: Signal, size: int, word: str, picked: str = "") -> None:
         st = self.state
-        self.log(f"Breakout: {word} {size} {self.inst.symbol} at market, stop {signal.stop:g}.")
+        self.log(f"Breakout: {word} {size} {self.inst.symbol} at market, stop {signal.stop:g}.{picked}")
         self.client.place_order(self.account_id, self.contract_id, MARKET, BUY if signal.side == LONG else SELL, size)
         position = None
         for _ in range(10):
@@ -379,6 +396,51 @@ class LiveBot:
         self.state.trade = None
         self.log(f"[practice] Would exit at about {last:g} ({reason}): {money(pnl)}. "
                  f"Practice total so far {money(self.state.practice_pnl)}.")
+
+    # ----- trade picker ----------------------------------------------------------------
+
+    def picker_context(self, local: datetime) -> Context:
+        """What the trade picker knows before today's open; loaded once a day."""
+        key = local.date().isoformat()
+        if self._context is None or self._context_day != key:
+            history = self._history(local.date())
+            self._context = context(history, self.cfg.picker)
+            self._context_day = key
+            c = self._context
+            known = ", ".join(part for part in (
+                f"usual opening volume {c.avg_or_volume:,.0f}" if c.avg_or_volume else "",
+                f"average day range {c.avg_range:.1f} points" if c.avg_range else "",
+                f"{self.cfg.picker.trend_days}-day trend {c.trend:+.1f} points" if c.trend is not None else "",
+            ) if part)
+            self.log(f"Trade picker loaded {len(history)} past days" + (f": {known}." if known else
+                     ". That's not enough history yet, so breakouts will fail its checks."))
+        return self._context
+
+    def _history(self, today: date) -> list[DayStats]:
+        """Earlier days' summaries, each from the contract that was front month that day,
+        exactly as `fetch` builds backtest data."""
+        days_back = self.cfg.picker.history_days * 7 // 5 + 12  # trading days plus weekends and holidays
+        bars: dict[datetime, Bar] = {}
+        for year, month, first, until in segments(today - timedelta(days=days_back), today):
+            start, end = utc_midnight(first), utc_midnight(until)
+            front = contract_id(self.inst.symbol, year, month)
+            try:
+                got = self.client.bars(front, start, end, self.p.bar_minutes, live=self.cfg.api.live_data)
+            except ProjectXNetworkError:
+                raise
+            except ProjectXError:  # not a quarterly contract
+                got = []
+            if not got and front != self.contract_id:
+                # No prices for that contract (expired, or not a quarterly symbol): use the one being
+                # traded. Its volume before it became the main contract was lower, so the volume
+                # check reads high for a few weeks after a roll.
+                self._note("history-fallback", f"No price history for {front}; using {self.contract_id} "
+                           "for those days instead.")
+                got = self.client.bars(self.contract_id, start, end, self.p.bar_minutes, live=self.cfg.api.live_data)
+            for bar in got:
+                bars[bar.start] = bar
+        ordered = [bars[k] for k in sorted(bars)]
+        return [day_stats(day, day_bars, self.p) for day, day_bars in sessions(ordered, self.p) if day < today]
 
     # ----- helpers ---------------------------------------------------------------------
 

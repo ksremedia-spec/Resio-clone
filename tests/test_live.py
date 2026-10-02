@@ -4,12 +4,20 @@ import pytest
 
 from combine_bot.config import BotSettings, Config
 from combine_bot.live import LiveBot
+from combine_bot.picker import PickerParams
 from combine_bot.projectx import BUY, MARKET, SELL, STOP
-from helpers import MONDAY, FakeTopstep, bar, ct, opening_day
+from helpers import MONDAY, FakeTopstep, bar, ct, history, opening_day
 
 
 @pytest.fixture
 def config(tmp_path):
+    """Order handling tests run without the trade picker (it has its own tests below)."""
+    return Config(picker=PickerParams(enabled=False),
+                  bot=BotSettings(state_file=str(tmp_path / "state.json"), log_file=str(tmp_path / "bot.log")))
+
+
+@pytest.fixture
+def picker_config(tmp_path):
     return Config(bot=BotSettings(state_file=str(tmp_path / "state.json"), log_file=str(tmp_path / "bot.log")))
 
 
@@ -168,6 +176,65 @@ def test_new_day_trails_the_loss_limit(config):
     bot.step()
     assert bot.state.mll == 48_600
     assert bot.state.best_day == 600
+
+
+def test_picker_takes_a_breakout_that_passes_its_checks(picker_config):
+    # Usual opening volume 300 (today 300: 1.0x), days range ~44 points (today's range 11),
+    # and the last weeks trended up, so the long breakout passes all three checks.
+    fake = FakeTopstep(history(drift=0.5, volume=100) + opening_day())
+    bot = make_bot(fake, picker_config)
+    at(fake, "08:50", 5)
+    bot.step()
+    assert fake.placed(MARKET) == [("place", MARKET, BUY, 2, None)]
+    assert any("Trade picker: 3 of 3 checks passed" in line for line in bot.lines)
+
+
+def test_picker_skips_a_breakout_that_fails_its_checks(picker_config):
+    # Opening volume half the usual, and the market has been falling: 1 of 3 checks.
+    fake = FakeTopstep(history(drift=-0.5, volume=200) + opening_day())
+    bot = make_bot(fake, picker_config)
+    at(fake, "08:50", 5)
+    bot.step()
+    assert fake.placed() == []
+    assert bot.state.trade_taken
+    skip = next(line for line in bot.lines if "skipped by the trade picker" in line)
+    assert "1 of 3 checks passed, 2 needed" in skip and "quieter than usual (0.5x)" in skip
+    assert "against the 20-day trend" in skip
+
+
+def test_picker_without_history_takes_nothing(picker_config):
+    fake = FakeTopstep(opening_day())
+    bot = make_bot(fake, picker_config)
+    at(fake, "08:50", 5)
+    bot.step()
+    assert fake.placed() == []
+    assert any("not enough history yet" in line for line in bot.lines)
+
+
+def test_picker_falls_back_when_old_contracts_have_no_history(picker_config):
+    class ExpiredContractsGone(FakeTopstep):
+        def bars(self, contract_id, start, end, minutes, **kwargs):
+            return super().bars(contract_id, start, end, minutes) if contract_id == self.CONTRACT else []
+
+    fake = ExpiredContractsGone(history(drift=0.5, volume=100) + opening_day())
+    bot = make_bot(fake, picker_config)
+    at(fake, "08:50", 5)
+    bot.step()
+    assert any("No price history for CON.F.US.MES.U26" in line for line in bot.lines)
+    assert any("Trade picker loaded 25 past days" in line for line in bot.lines)
+    assert fake.placed(MARKET) == [("place", MARKET, BUY, 2, None)]
+
+
+def test_picker_history_is_loaded_once_a_day(picker_config):
+    fake = FakeTopstep(history(drift=0.5, volume=100) + opening_day())
+    bot = make_bot(fake, picker_config)
+    loads = []
+    original = bot._history
+    bot._history = lambda today: loads.append(today) or original(today)
+    for second in (0, 5, 10):
+        at(fake, "08:20", second)
+        bot.step()
+    assert len(loads) == 1
 
 
 def _raise(exc):

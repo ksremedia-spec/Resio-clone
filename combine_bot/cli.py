@@ -4,35 +4,50 @@ from __future__ import annotations
 import argparse
 import time as _time
 from dataclasses import replace
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 
 from .bars import CT, Bar, bar_minutes, load_csv, resample, save_csv
 from .combine import simulate_attempts, summarize_attempts
 from .config import Config, load_config
-from .contracts import contract_id, segments
+from .contracts import contract_id, segments, utc_midnight
+from .lab import run_lab
 from .live import LiveBot
 from .projectx import MAX_BARS, ProjectXClient, ProjectXError
-from .report import format_backtest, format_combine, write_trades
-from .sim import backtest, backtest_stats
+from .report import format_backtest, format_combine, format_picker, write_trades
+from .sim import backtest, backtest_stats, chosen
 from .strategy import OpeningRangeBreakout
 from .synthetic import synthetic_bars
 
 
 def _report(cfg: Config, bars: list[Bar], trades_out: str | None = None) -> int:
-    strategy = OpeningRangeBreakout(cfg.strategy, cfg.instrument.tick_size)
-    days = backtest(bars, strategy, cfg.instrument)
-    stats = backtest_stats(days, cfg.instrument, cfg.risk, room=cfg.combine.max_loss)
+    inst, risk, rules, picker = cfg.instrument, cfg.risk, cfg.combine, cfg.picker
+    days = backtest(bars, OpeningRangeBreakout(cfg.strategy, inst.tick_size), inst, picker)
+    taken = chosen(days, picker.enabled)
+    breakouts = sum(d.trade is not None for d in days)
+    stats = backtest_stats(taken, inst, risk, room=rules.max_loss)
     if stats is None:
-        print("No trades in this data. Check that it covers the 8:30 AM to 3:00 PM CT day session.")
+        print("No trades in this data. Check that it covers the 8:30 AM to 3:00 PM CT day session"
+              + (f" and at least {picker.history_days + 10} trading days (the trade picker needs history)."
+                 if picker.enabled else "."))
         return 1
-    print(format_backtest(stats, cfg.instrument))
+    note = (f"Trade picker on: took {sum(t is not None for _, t in taken)} of {breakouts} breakouts"
+            if picker.enabled else "Trade picker off: every breakout taken")
+    print(format_backtest(stats, inst, note))
     print()
-    attempts = simulate_attempts(days, cfg.combine, cfg.risk, cfg.instrument)
-    print(format_combine(summarize_attempts(attempts), cfg.combine))
+    lab = run_lab(days, inst, risk, rules.max_loss)
+    if lab is not None:
+        print(format_picker(lab, picker))
+        print()
+    columns = []
+    if picker.enabled:
+        columns.append(("With picker", summarize_attempts(simulate_attempts(taken, rules, risk, inst))))
+    every = summarize_attempts(simulate_attempts(chosen(days, use_picker=False), rules, risk, inst))
+    columns.append(("Every breakout", every))
+    print(format_combine(columns, rules))
     if trades_out:
-        write_trades(days, cfg.instrument, cfg.risk, cfg.combine.max_loss, trades_out)
-        print(f"\nEvery trade was written to {trades_out}")
+        write_trades(days, inst, risk, rules.max_loss, trades_out, picker.enabled)
+        print(f"\nEvery breakout was written to {trades_out}")
     return 0
 
 
@@ -49,10 +64,6 @@ def _load_bars(cfg: Config, path: str, tz: str) -> list[Bar]:
 
 def _client(cfg: Config) -> ProjectXClient:
     return ProjectXClient(cfg.api.base_url, cfg.api.username, cfg.api.api_key)
-
-
-def _utc_midnight(d: date) -> datetime:
-    return datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
 
 
 def _logger(path: str):
@@ -86,6 +97,8 @@ def cmd_check(cfg: Config, args: argparse.Namespace) -> int:
         print(f"  {a.get('id')}  {a.get('name')}  balance {a.get('balance')}  ({status})")
     bot = LiveBot(client, cfg, live=False)
     bot.connect()
+    if cfg.picker.enabled:
+        bot.picker_context(datetime.now(CT))
     now = datetime.now(timezone.utc)
     bars = client.bars(bot.contract_id, now - timedelta(days=5), now, cfg.strategy.bar_minutes,
                        limit=2000, live=cfg.api.live_data)
@@ -106,7 +119,7 @@ def cmd_fetch(cfg: Config, args: argparse.Namespace) -> int:
     if args.contract:
         pieces = [(args.contract, start, end)]
     else:
-        pieces = [(contract_id(cfg.instrument.symbol, y, m), _utc_midnight(a), _utc_midnight(b))
+        pieces = [(contract_id(cfg.instrument.symbol, y, m), utc_midnight(a), utc_midnight(b))
                   for y, m, a, b in segments(start.date(), end.date() + timedelta(days=1))]
     chunk = timedelta(days=max(1, int(MAX_BARS * minutes / 1440 * 0.8)))
     collected: dict[datetime, Bar] = {}

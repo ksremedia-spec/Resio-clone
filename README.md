@@ -16,12 +16,46 @@ Topstep's official API (ProjectX), running on your own computer.
 ## What it does each trading day
 
 1. At 8:30 AM Central (the stock market open), it marks the high and low of the first 15 minutes.
-2. If a 5-minute bar closes above that high (or below that low) before 11:00 AM CT, it buys
-   (or sells short).
-3. A stop order goes onto Topstep's servers immediately, at the other side of the 15-minute
-   range. The profit target is 1.5 times the risk.
-4. Anything still open is closed at 3:00 PM CT (Topstep requires you to be flat by 3:10).
-5. At most one trade per day.
+2. If a 5-minute bar closes above that high (or below that low) before 11:00 AM CT, that's a
+   breakout.
+3. The **trade picker** scores the breakout (see below). If it scores too low, the bot sits the
+   day out.
+4. Otherwise it buys (or sells short). A stop order goes onto Topstep's servers immediately, at
+   the other side of the 15-minute range. The profit target is 1.5 times the risk.
+5. Anything still open is closed at 3:00 PM CT (Topstep requires you to be flat by 3:10).
+6. At most one trade per day.
+
+## The trade picker (the "secret sauce")
+
+Not every breakout is worth taking. The picker checks three things, each based on published
+trading research, and by default a breakout needs to pass 2 of them:
+
+| Check | The question it asks | Where the idea comes from |
+|---|---|---|
+| Volume | Were the first 15 minutes busier than usual? Real money behind a move helps it follow through. | Zarattini, Barbon & Aziz (2024): opening-range breakouts worked best on unusually active "stocks in play" |
+| Range | Is the opening range tight compared with a normal day? A tight range leaves room to run. | Toby Crabel (1990): narrow ranges tend to come before big moves |
+| Trend | Is the breakout going the same way as the last 20 days? | Moskowitz, Ooi & Pedersen (2012), "Time Series Momentum" |
+
+**There's no magic here.** These ideas worked in other markets and periods; whether they help
+with MES today is exactly what you need to check. So the backtest report has a **TRADE PICKER**
+section that tests each check on your price history, separately on older and newer data:
+
+- **helped in both periods**: the trades it kept clearly beat the ones it skipped, in both
+  halves of the history. That's a check worth keeping.
+- **no clear effect: could be luck**: switch it off.
+- **hurt in both periods**: definitely switch it off.
+
+The test is strict on purpose. On made-up random prices it practically never claims a check
+helped, but it does find a pattern when one is planted in the data. When a check helps, the
+report prints the exact settings to use; switch checks on or off under `[picker]` in
+`config.toml`.
+
+**Better trades don't always mean more passes.** Every skipped breakout is a trade that could
+have moved you toward the target, so a picker can make each trade better yet still pass the
+Combine less often, because it gets there more slowly and pays more monthly fees along the way.
+The Combine section shows the pass rate with the picker and for every breakout, and ends with a
+BOTTOM LINE. Keep the picker only if it wins there. Resist tuning the numbers until everything
+looks good: that just fits the past and falls apart live.
 
 **Safety features**
 
@@ -81,13 +115,19 @@ If the times in your file have no time zone, say which one they're in, for examp
 How to read the results:
 
 - **Profit factor**: below 1.0 means the strategy lost money over this period. Don't pay to trade it.
-- **PASS RATE**: of all the days you could have started the Combine, how often it passed.
+- **TRADE PICKER**: which checks actually helped (see [the trade picker](#the-trade-picker-the-secret-sauce)).
+  Switch off any that didn't, then run the backtest again.
+- **PASS RATE**: of all the days you could have started the Combine, how often it passed. It's
+  shown with the picker and for every breakout, so you can see whether the picker earns its keep.
 - **Expected spend to get one pass**: the average fees, failed attempts included, per pass.
 - **Pass rate by start year**: if it only worked in one year, that's luck, not a pattern.
 
 Only go live if the profit factor is clearly above 1.0 and the pass rate holds up across years.
 You can change the settings and test again, but every tweak that happens to fit the past makes
 the results less trustworthy. Keep changes few and simple.
+
+The picker needs about a month of history before it can judge breakouts (it compares today
+with the previous 14 to 21 trading days), so the first weeks of any price file are never traded.
 
 ## Step 3: connect to TopstepX
 
@@ -187,6 +227,8 @@ python3 -m pytest
 | File | What it does |
 |---|---|
 | `combine_bot/strategy.py` | The opening-range breakout rules, shared by the backtest and the live bot |
+| `combine_bot/picker.py` | The trade picker's three checks and its scoring |
+| `combine_bot/lab.py` | Tests whether each check helped (kept vs skipped trades, older vs newer data) |
 | `combine_bot/sim.py` | Backtest fill model and statistics |
 | `combine_bot/combine.py` | Combine rules and the start-on-every-day simulator |
 | `combine_bot/risk.py` | Contract specs and position sizing |

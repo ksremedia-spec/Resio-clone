@@ -1,9 +1,13 @@
 """Quarterly equity-index futures (MES, ES, MNQ, NQ, ...): which contract was the front month on a day."""
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 QUARTER_CODES = {3: "H", 6: "M", 9: "U", 12: "Z"}
+
+
+def utc_midnight(d: date) -> datetime:
+    return datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
 
 
 def third_friday(year: int, month: int) -> date:

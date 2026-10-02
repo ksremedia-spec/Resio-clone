@@ -8,6 +8,7 @@ from datetime import time
 from pathlib import Path
 
 from .combine import CombineRules
+from .picker import PickerParams
 from .risk import Instrument, RiskParams
 from .strategy import ORBParams
 
@@ -33,6 +34,7 @@ class BotSettings:
 class Config:
     instrument: Instrument = field(default_factory=Instrument)
     strategy: ORBParams = field(default_factory=ORBParams)
+    picker: PickerParams = field(default_factory=PickerParams)
     risk: RiskParams = field(default_factory=RiskParams)
     combine: CombineRules = field(default_factory=CombineRules)
     api: ApiSettings = field(default_factory=ApiSettings)
